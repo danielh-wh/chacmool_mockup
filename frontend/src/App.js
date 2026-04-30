@@ -1545,7 +1545,7 @@ const EmployeeList = ({ isAdmin }) => {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedDept, setSelectedDept] = useState("all");
-  const [viewMode, setViewMode] = useState("grid");
+  const [viewMode, setViewMode] = useState("list");
 
   const filteredEmployees = useMemo(() => {
     const q = searchTerm.trim().toLowerCase();
