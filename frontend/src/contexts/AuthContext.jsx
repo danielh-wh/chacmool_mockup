@@ -19,6 +19,32 @@ export const AuthProvider = ({ children }) => {
     }
   }, [token]);
 
+  // Helper: read response body ONCE as text and parse JSON safely.
+  // Uses response.clone() to be resilient against fetch interceptors
+  // (e.g. PostHog session recording, devtools, service workers) that may
+  // have already started consuming the body stream.
+  const readJsonSafe = async (response) => {
+    let text = '';
+    try {
+      // Clone first so we don't fight with any wrapper that already touched
+      // the original stream. Falls back to reading the original if clone fails.
+      const target = typeof response.clone === 'function' ? response.clone() : response;
+      text = await target.text();
+    } catch (e) {
+      try {
+        text = await response.text();
+      } catch {
+        return {};
+      }
+    }
+    if (!text) return {};
+    try {
+      return JSON.parse(text);
+    } catch {
+      return { _raw: text };
+    }
+  };
+
   const fetchUser = async () => {
     try {
       const response = await fetch(`${API_URL}/api/auth/me`, {
@@ -26,10 +52,11 @@ export const AuthProvider = ({ children }) => {
           'Authorization': `Bearer ${token}`
         }
       });
-      
+
+      const data = await readJsonSafe(response);
+
       if (response.ok) {
-        const userData = await response.json();
-        setUser(userData);
+        setUser(data);
       } else {
         logout();
       }
@@ -51,12 +78,19 @@ export const AuthProvider = ({ children }) => {
         body: JSON.stringify({ email, password })
       });
 
+      const data = await readJsonSafe(response);
+
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.detail || 'Login failed');
+        const detail = data?.detail;
+        const message =
+          typeof detail === 'string'
+            ? detail
+            : Array.isArray(detail)
+            ? detail.map((d) => d.msg || d).join(', ')
+            : 'Credenciales incorrectas';
+        throw new Error(message);
       }
 
-      const data = await response.json();
       setToken(data.access_token);
       setUser(data.user);
       localStorage.setItem('token', data.access_token);
