@@ -1402,81 +1402,141 @@ const EmployeeCard = ({ emp, onClick }) => {
 
 const EmployeeTable = ({ employees, onSelect }) => (
   <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden">
-    <div className="overflow-x-auto">
-      <table className="w-full">
-        <thead className="bg-slate-50 border-b border-slate-200">
-          <tr>
-            <th className="text-left text-[11px] font-semibold text-slate-500 uppercase tracking-wider px-6 py-4">Empleado</th>
-            <th className="text-left text-[11px] font-semibold text-slate-500 uppercase tracking-wider px-6 py-4">Departamento</th>
-            <th className="text-left text-[11px] font-semibold text-slate-500 uppercase tracking-wider px-6 py-4 min-w-[180px]">Valores</th>
-            <th className="text-left text-[11px] font-semibold text-slate-500 uppercase tracking-wider px-6 py-4 min-w-[180px]">Resultados</th>
-            <th className="text-center text-[11px] font-semibold text-slate-500 uppercase tracking-wider px-6 py-4">Clasif.</th>
-            <th className="text-center text-[11px] font-semibold text-slate-500 uppercase tracking-wider px-6 py-4">Evaluadores</th>
-            <th className="px-4 py-4"></th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-slate-100">
-          {employees.map((emp) => {
-            const classification = getClassification(emp.valoresScore, emp.resultadosScore);
-            const colors = classificationColors[classification.color];
-            const dept = mockDepartments.find((d) => d.id === emp.departmentId);
-            const totalEvaluators = Object.values(emp.evaluatorCounts).reduce((a, b) => a + b, 0);
-            return (
-              <tr
-                key={emp.id}
-                onClick={() => onSelect(emp)}
-                className="group hover:bg-slate-50 cursor-pointer transition-colors"
+    {/* Column headers (desktop) */}
+    <div className="hidden lg:grid grid-cols-[minmax(260px,2.2fr)_minmax(130px,1fr)_minmax(170px,1.3fr)_minmax(170px,1.3fr)_80px_100px] items-center gap-6 px-6 py-3 bg-slate-50 border-b border-slate-200">
+      <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Empleado</span>
+      <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Departamento</span>
+      <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Valores</span>
+      <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Resultados</span>
+      <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider text-center">Clasif.</span>
+      <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider text-right">Acciones</span>
+    </div>
+
+    <div className="divide-y divide-slate-100">
+      {employees.map((emp) => {
+        const classification = getClassification(emp.valoresScore, emp.resultadosScore);
+        const colors = classificationColors[classification.color];
+        const dept = mockDepartments.find((d) => d.id === emp.departmentId);
+        const totalEvaluators = Object.values(emp.evaluatorCounts).reduce((a, b) => a + b, 0);
+        const email =
+          emp.name
+            .toLowerCase()
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .split(' ')
+            .slice(0, 2)
+            .join('.') + '@empresa.com';
+
+        return (
+          <div
+            key={emp.id}
+            onClick={() => onSelect(emp)}
+            className="group relative grid grid-cols-1 lg:grid-cols-[minmax(260px,2.2fr)_minmax(130px,1fr)_minmax(170px,1.3fr)_minmax(170px,1.3fr)_80px_100px] items-center gap-4 lg:gap-6 px-6 py-4 hover:bg-slate-50/70 cursor-pointer transition-colors"
+          >
+            {/* Accent bar lateral (aparece en hover, color del departamento) */}
+            <span
+              aria-hidden
+              className="absolute left-0 top-2 bottom-2 w-1 rounded-r-full opacity-0 group-hover:opacity-100 transition-opacity"
+              style={{ backgroundColor: dept?.color || '#94a3b8' }}
+            />
+
+            {/* 1. Identidad: avatar con estado + nombre + puesto + email */}
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="relative flex-shrink-0">
+                <img
+                  src={emp.avatar}
+                  alt={emp.name}
+                  className="w-12 h-12 rounded-full object-cover ring-2 ring-white shadow-[0_0_0_1px_rgba(15,23,42,0.08)]"
+                  onError={(e) => { e.target.src = `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(emp.name)}`; }}
+                />
+                <span
+                  className="absolute bottom-0 right-0 w-3 h-3 rounded-full bg-emerald-500 border-2 border-white"
+                  title="Activo"
+                />
+              </div>
+              <div className="min-w-0">
+                <p className="font-semibold text-slate-900 truncate leading-tight">{emp.name}</p>
+                <div className="flex items-center gap-1.5 text-xs text-slate-500 truncate mt-0.5">
+                  <span className="truncate">{emp.position}</span>
+                  <span className="text-slate-300 hidden sm:inline">·</span>
+                  <span className="truncate hidden sm:inline text-slate-400">{email}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* 2. Departamento */}
+            <div className="flex lg:block">
+              <EmpDeptPill dept={dept} />
+            </div>
+
+            {/* 3. Valores */}
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="flex-1 h-1.5 rounded-full bg-purple-100 overflow-hidden">
+                <div
+                  className="h-full bg-purple-500 rounded-full transition-all duration-500"
+                  style={{ width: `${emp.valoresScore}%` }}
+                />
+              </div>
+              <span className="text-sm font-semibold text-purple-700 tabular-nums w-10 flex-shrink-0 text-right">
+                {emp.valoresScore}%
+              </span>
+            </div>
+
+            {/* 4. Resultados */}
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="flex-1 h-1.5 rounded-full bg-blue-100 overflow-hidden">
+                <div
+                  className="h-full bg-blue-500 rounded-full transition-all duration-500"
+                  style={{ width: `${emp.resultadosScore}%` }}
+                />
+              </div>
+              <span className="text-sm font-semibold text-blue-700 tabular-nums w-10 flex-shrink-0 text-right">
+                {emp.resultadosScore}%
+              </span>
+            </div>
+
+            {/* 5. Clasificación */}
+            <div className="flex lg:justify-center">
+              <span
+                className="inline-flex items-center justify-center px-3 py-1 rounded-lg font-bold text-sm min-w-[44px]"
+                style={{
+                  backgroundColor: colors.bg,
+                  color: colors.text,
+                  border: `1px solid ${colors.border}`,
+                }}
+                title={classification.label}
               >
-                <td className="px-6 py-4">
-                  <div className="flex items-center gap-3">
-                    <img
-                      src={emp.avatar}
-                      alt=""
-                      className="w-10 h-10 rounded-full object-cover ring-1 ring-slate-200"
-                      onError={(e) => { e.target.src = `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(emp.name)}`; }}
-                    />
-                    <div className="min-w-0">
-                      <p className="font-medium text-slate-900 truncate">{emp.name}</p>
-                      <p className="text-sm text-slate-500 truncate">{emp.position}</p>
-                    </div>
-                  </div>
-                </td>
-                <td className="px-6 py-4">
-                  <EmpDeptPill dept={dept} />
-                </td>
-                <td className="px-6 py-4">
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-semibold text-purple-700 w-10 tabular-nums">{emp.valoresScore}%</span>
-                    <div className="flex-1 h-1.5 rounded-full bg-purple-100 overflow-hidden">
-                      <div className="h-full bg-purple-500 rounded-full" style={{ width: `${emp.valoresScore}%` }} />
-                    </div>
-                  </div>
-                </td>
-                <td className="px-6 py-4">
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-semibold text-blue-700 w-10 tabular-nums">{emp.resultadosScore}%</span>
-                    <div className="flex-1 h-1.5 rounded-full bg-blue-100 overflow-hidden">
-                      <div className="h-full bg-blue-500 rounded-full" style={{ width: `${emp.resultadosScore}%` }} />
-                    </div>
-                  </div>
-                </td>
-                <td className="px-6 py-4 text-center">
-                  <span
-                    className="px-3 py-1 rounded-lg font-bold text-sm"
-                    style={{ backgroundColor: colors.bg, color: colors.text, border: `1px solid ${colors.border}` }}
-                  >
-                    {classification.code}
-                  </span>
-                </td>
-                <td className="px-6 py-4 text-center text-sm text-slate-600 tabular-nums">{totalEvaluators}</td>
-                <td className="px-4 py-4 text-right">
-                  <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-slate-600 group-hover:translate-x-0.5 transition-all" />
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
+                {classification.code}
+              </span>
+            </div>
+
+            {/* 6. Acciones */}
+            <div className="flex items-center gap-1 justify-self-end">
+              <span
+                className="hidden xl:flex items-center gap-1 text-xs text-slate-400 mr-1 tabular-nums"
+                title={`${totalEvaluators} evaluadores`}
+              >
+                <Users className="w-3.5 h-3.5" />
+                {totalEvaluators}
+              </span>
+              <button
+                onClick={(e) => { e.stopPropagation(); window.location.href = `mailto:${email}`; }}
+                className="p-2 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-all opacity-0 group-hover:opacity-100"
+                title="Enviar email"
+              >
+                <Mail className="w-4 h-4" />
+              </button>
+              <button
+                onClick={(e) => { e.stopPropagation(); onSelect(emp); }}
+                className="p-2 rounded-lg text-slate-400 hover:text-slate-900 hover:bg-slate-100 transition-all"
+                title="Ver perfil"
+              >
+                <ChevronRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
+              </button>
+            </div>
+          </div>
+        );
+      })}
     </div>
   </div>
 );
