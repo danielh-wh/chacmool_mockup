@@ -1287,86 +1287,358 @@ const MyProfileResultsView = ({ isAdmin }) => {
 // Dashboard ahora está en /pages/Dashboard.jsx
 // ============================================
 
+// --- Helpers visuales para EmployeeList ---
+const EmpStatCard = ({ icon: Icon, label, value, accent }) => {
+  const palette = {
+    slate: { iconBg: "bg-slate-900", iconColor: "text-white" },
+    green: { iconBg: "bg-emerald-500", iconColor: "text-white" },
+    red: { iconBg: "bg-rose-500", iconColor: "text-white" },
+    blue: { iconBg: "bg-blue-500", iconColor: "text-white" },
+  };
+  const c = palette[accent] || palette.slate;
+  return (
+    <div className="bg-white border border-slate-200 rounded-2xl p-4 flex items-center gap-3">
+      <div className={`w-10 h-10 rounded-xl ${c.iconBg} flex items-center justify-center flex-shrink-0`}>
+        <Icon className={`w-5 h-5 ${c.iconColor}`} />
+      </div>
+      <div>
+        <p className="text-[11px] text-slate-500 font-medium uppercase tracking-wider">{label}</p>
+        <p className="text-2xl font-semibold text-slate-900 leading-none mt-1" style={{ fontFamily: 'Outfit' }}>{value}</p>
+      </div>
+    </div>
+  );
+};
+
+const EmpMetric = ({ label, value, tone }) => {
+  const palette = {
+    purple: { text: "text-purple-700", bar: "bg-purple-500", track: "bg-purple-100" },
+    blue: { text: "text-blue-700", bar: "bg-blue-500", track: "bg-blue-100" },
+  };
+  const c = palette[tone];
+  return (
+    <div>
+      <div className="flex items-center justify-between text-xs mb-1">
+        <span className="text-slate-500">{label}</span>
+        <span className={`font-semibold ${c.text}`}>{value}%</span>
+      </div>
+      <div className={`h-1.5 rounded-full overflow-hidden ${c.track}`}>
+        <div className={`h-full ${c.bar} rounded-full transition-all duration-500`} style={{ width: `${value}%` }} />
+      </div>
+    </div>
+  );
+};
+
+const EmpDeptPill = ({ dept }) => {
+  if (!dept) return null;
+  return (
+    <div
+      className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-xs font-medium"
+      style={{ backgroundColor: `${dept.color}15`, color: dept.color }}
+    >
+      <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: dept.color }} />
+      {dept.name}
+    </div>
+  );
+};
+
+const EmployeeCard = ({ emp, onClick }) => {
+  const classification = getClassification(emp.valoresScore, emp.resultadosScore);
+  const colors = classificationColors[classification.color];
+  const dept = mockDepartments.find((d) => d.id === emp.departmentId);
+  const totalEvaluators = Object.values(emp.evaluatorCounts).reduce((a, b) => a + b, 0);
+
+  return (
+    <button
+      onClick={onClick}
+      className="group text-left bg-white border border-slate-200 rounded-2xl p-5 transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5 hover:border-slate-300"
+    >
+      <div className="flex items-start justify-between mb-4">
+        <div className="relative">
+          <span
+            aria-hidden
+            className="absolute -inset-0.5 rounded-full blur-sm opacity-40"
+            style={{ backgroundColor: colors.border }}
+          />
+          <img
+            src={emp.avatar}
+            alt={emp.name}
+            className="relative w-14 h-14 rounded-full ring-2 ring-white object-cover"
+            onError={(e) => { e.target.src = `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(emp.name)}`; }}
+          />
+        </div>
+        <span
+          className="px-2.5 py-1 rounded-lg font-bold text-xs tracking-wide"
+          style={{ backgroundColor: colors.bg, color: colors.text, border: `1px solid ${colors.border}` }}
+          title={classification.label}
+        >
+          {classification.code}
+        </span>
+      </div>
+
+      <h3 className="font-semibold text-slate-900 truncate" title={emp.name}>
+        {emp.name}
+      </h3>
+      <p className="text-sm text-slate-500 truncate mb-3">{emp.position}</p>
+
+      <div className="mb-4">
+        <EmpDeptPill dept={dept} />
+      </div>
+
+      <div className="space-y-2 mb-4">
+        <EmpMetric label="Valores" value={emp.valoresScore} tone="purple" />
+        <EmpMetric label="Resultados" value={emp.resultadosScore} tone="blue" />
+      </div>
+
+      <div className="flex items-center justify-between pt-3 border-t border-slate-100">
+        <span className="text-xs text-slate-500 flex items-center gap-1.5">
+          <Users className="w-3.5 h-3.5" />
+          {totalEvaluators} {totalEvaluators === 1 ? "evaluador" : "evaluadores"}
+        </span>
+        <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-slate-600 group-hover:translate-x-0.5 transition-all" />
+      </div>
+    </button>
+  );
+};
+
+const EmployeeTable = ({ employees, onSelect }) => (
+  <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden">
+    <div className="overflow-x-auto">
+      <table className="w-full">
+        <thead className="bg-slate-50 border-b border-slate-200">
+          <tr>
+            <th className="text-left text-[11px] font-semibold text-slate-500 uppercase tracking-wider px-6 py-4">Empleado</th>
+            <th className="text-left text-[11px] font-semibold text-slate-500 uppercase tracking-wider px-6 py-4">Departamento</th>
+            <th className="text-left text-[11px] font-semibold text-slate-500 uppercase tracking-wider px-6 py-4 min-w-[180px]">Valores</th>
+            <th className="text-left text-[11px] font-semibold text-slate-500 uppercase tracking-wider px-6 py-4 min-w-[180px]">Resultados</th>
+            <th className="text-center text-[11px] font-semibold text-slate-500 uppercase tracking-wider px-6 py-4">Clasif.</th>
+            <th className="text-center text-[11px] font-semibold text-slate-500 uppercase tracking-wider px-6 py-4">Evaluadores</th>
+            <th className="px-4 py-4"></th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-slate-100">
+          {employees.map((emp) => {
+            const classification = getClassification(emp.valoresScore, emp.resultadosScore);
+            const colors = classificationColors[classification.color];
+            const dept = mockDepartments.find((d) => d.id === emp.departmentId);
+            const totalEvaluators = Object.values(emp.evaluatorCounts).reduce((a, b) => a + b, 0);
+            return (
+              <tr
+                key={emp.id}
+                onClick={() => onSelect(emp)}
+                className="group hover:bg-slate-50 cursor-pointer transition-colors"
+              >
+                <td className="px-6 py-4">
+                  <div className="flex items-center gap-3">
+                    <img
+                      src={emp.avatar}
+                      alt=""
+                      className="w-10 h-10 rounded-full object-cover ring-1 ring-slate-200"
+                      onError={(e) => { e.target.src = `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(emp.name)}`; }}
+                    />
+                    <div className="min-w-0">
+                      <p className="font-medium text-slate-900 truncate">{emp.name}</p>
+                      <p className="text-sm text-slate-500 truncate">{emp.position}</p>
+                    </div>
+                  </div>
+                </td>
+                <td className="px-6 py-4">
+                  <EmpDeptPill dept={dept} />
+                </td>
+                <td className="px-6 py-4">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-semibold text-purple-700 w-10 tabular-nums">{emp.valoresScore}%</span>
+                    <div className="flex-1 h-1.5 rounded-full bg-purple-100 overflow-hidden">
+                      <div className="h-full bg-purple-500 rounded-full" style={{ width: `${emp.valoresScore}%` }} />
+                    </div>
+                  </div>
+                </td>
+                <td className="px-6 py-4">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-semibold text-blue-700 w-10 tabular-nums">{emp.resultadosScore}%</span>
+                    <div className="flex-1 h-1.5 rounded-full bg-blue-100 overflow-hidden">
+                      <div className="h-full bg-blue-500 rounded-full" style={{ width: `${emp.resultadosScore}%` }} />
+                    </div>
+                  </div>
+                </td>
+                <td className="px-6 py-4 text-center">
+                  <span
+                    className="px-3 py-1 rounded-lg font-bold text-sm"
+                    style={{ backgroundColor: colors.bg, color: colors.text, border: `1px solid ${colors.border}` }}
+                  >
+                    {classification.code}
+                  </span>
+                </td>
+                <td className="px-6 py-4 text-center text-sm text-slate-600 tabular-nums">{totalEvaluators}</td>
+                <td className="px-4 py-4 text-right">
+                  <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-slate-600 group-hover:translate-x-0.5 transition-all" />
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  </div>
+);
+
 const EmployeeList = ({ isAdmin }) => {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
-  const filteredEmployees = mockEmployees.filter(emp => emp.name.toLowerCase().includes(searchTerm.toLowerCase()));
+  const [selectedDept, setSelectedDept] = useState("all");
+  const [viewMode, setViewMode] = useState("grid");
+
+  const filteredEmployees = useMemo(() => {
+    const q = searchTerm.trim().toLowerCase();
+    return mockEmployees.filter((emp) => {
+      const matchesSearch =
+        !q ||
+        emp.name.toLowerCase().includes(q) ||
+        emp.position.toLowerCase().includes(q) ||
+        emp.department.toLowerCase().includes(q);
+      const matchesDept = selectedDept === "all" || emp.departmentId === selectedDept;
+      return matchesSearch && matchesDept;
+    });
+  }, [searchTerm, selectedDept]);
+
+  const stats = useMemo(() => {
+    const total = mockEmployees.length;
+    const empA = mockEmployees.filter((e) => getClassification(e.valoresScore, e.resultadosScore).code === "A").length;
+    const empAtt = mockEmployees.filter((e) => {
+      const c = getClassification(e.valoresScore, e.resultadosScore).code;
+      return c.startsWith("C");
+    }).length;
+    const numDepts = new Set(mockEmployees.map((e) => e.departmentId)).size;
+    return { total, empA, empAtt, numDepts };
+  }, []);
+
+  const navigateToProfile = (emp) => navigate(`/perfil/${emp.id.replace("EMP-00", "")}`);
 
   return (
     <div className="animate-fade-in">
-      <div className="flex items-center justify-between mb-8">
+      {/* Header */}
+      <div className="flex items-start justify-between mb-6 gap-4 flex-wrap">
         <div>
-          <h1 className="text-3xl font-semibold text-slate-900 tracking-tight" style={{ fontFamily: 'Outfit' }}>Empleados</h1>
-          <p className="text-slate-500 mt-1">Gestión del personal</p>
+          <h1 className="text-3xl font-semibold text-slate-900 tracking-tight" style={{ fontFamily: 'Outfit' }}>
+            Empleados
+          </h1>
+          <p className="text-slate-500 mt-1">
+            {stats.total} miembros del equipo · {stats.numDepts} departamentos
+          </p>
         </div>
-        <button className="bg-slate-900 text-white rounded-xl px-4 py-2.5 font-medium flex items-center gap-2">
-          <Plus className="w-4 h-4" />
-          Agregar
-        </button>
+        {isAdmin && (
+          <button className="bg-slate-900 hover:bg-slate-800 text-white rounded-xl px-4 py-2.5 font-medium flex items-center gap-2 transition-colors shadow-sm">
+            <UserPlus className="w-4 h-4" />
+            Agregar empleado
+          </button>
+        )}
       </div>
 
+      {/* Quick stats */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mb-6">
+        <EmpStatCard icon={Users} label="Total" value={stats.total} accent="slate" />
+        <EmpStatCard icon={Star} label="Empleados A" value={stats.empA} accent="green" />
+        <EmpStatCard icon={AlertTriangle} label="Atención" value={stats.empAtt} accent="red" />
+        <EmpStatCard icon={Building2} label="Departamentos" value={stats.numDepts} accent="blue" />
+      </div>
+
+      {/* Toolbar */}
       <div className="bg-white border border-slate-200 rounded-2xl p-4 mb-6">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-          <input
-            type="text"
-            placeholder="Buscar empleado..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm"
-          />
+        <div className="flex items-center gap-3 flex-wrap">
+          <div className="relative flex-1 min-w-[240px]">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+            <input
+              type="text"
+              placeholder="Buscar por nombre, puesto o departamento..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-slate-200 focus:border-slate-300"
+            />
+          </div>
+          <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl">
+            <button
+              onClick={() => setViewMode("grid")}
+              className={`px-3 py-1.5 rounded-lg flex items-center gap-1.5 text-sm font-medium transition-colors ${
+                viewMode === "grid" ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-700"
+              }`}
+              aria-pressed={viewMode === "grid"}
+            >
+              <LayoutGrid className="w-4 h-4" />
+              Tarjetas
+            </button>
+            <button
+              onClick={() => setViewMode("list")}
+              className={`px-3 py-1.5 rounded-lg flex items-center gap-1.5 text-sm font-medium transition-colors ${
+                viewMode === "list" ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-700"
+              }`}
+              aria-pressed={viewMode === "list"}
+            >
+              <List className="w-4 h-4" />
+              Lista
+            </button>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2 mt-4 flex-wrap">
+          <button
+            onClick={() => setSelectedDept("all")}
+            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
+              selectedDept === "all"
+                ? "bg-slate-900 text-white"
+                : "bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-200"
+            }`}
+          >
+            Todos
+          </button>
+          {mockDepartments.map((d) => {
+            const active = selectedDept === d.id;
+            return (
+              <button
+                key={d.id}
+                onClick={() => setSelectedDept(d.id)}
+                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all flex items-center gap-1.5 ${
+                  active ? "text-white" : "bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-200"
+                }`}
+                style={active ? { backgroundColor: d.color, borderColor: d.color } : {}}
+              >
+                <span
+                  className="w-2 h-2 rounded-full"
+                  style={{ backgroundColor: active ? "#fff" : d.color }}
+                />
+                {d.name}
+              </button>
+            );
+          })}
         </div>
       </div>
 
-      <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden">
-        <table className="w-full">
-          <thead className="bg-slate-50 border-b border-slate-200">
-            <tr>
-              <th className="text-left text-xs font-semibold text-slate-500 uppercase px-6 py-4">Empleado</th>
-              <th className="text-center text-xs font-semibold text-slate-500 uppercase px-6 py-4">Valores</th>
-              <th className="text-center text-xs font-semibold text-slate-500 uppercase px-6 py-4">Resultados</th>
-              <th className="text-center text-xs font-semibold text-slate-500 uppercase px-6 py-4">Clasificación</th>
-              <th className="text-center text-xs font-semibold text-slate-500 uppercase px-6 py-4">Evaluadores</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100">
-            {filteredEmployees.map((emp) => {
-              const classification = getClassification(emp.valoresScore, emp.resultadosScore);
-              const colors = classificationColors[classification.color];
-              const totalEvaluators = Object.values(emp.evaluatorCounts).reduce((a, b) => a + b, 0);
-              
-              // Extraer ID del empleado (EMP-001 -> 1)
-              const employeeId = emp.id.replace('EMP-00', '');
-              
-              return (
-                <tr 
-                  key={emp.id} 
-                  onClick={() => navigate(`/perfil/${employeeId}`)}
-                  className="hover:bg-slate-50 cursor-pointer transition-colors"
-                >
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-3">
-                      <img src={emp.avatar} alt="" className="w-10 h-10 rounded-full" />
-                      <div>
-                        <p className="font-medium text-slate-900">{emp.name}</p>
-                        <p className="text-sm text-slate-500">{emp.position}</p>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 text-center font-semibold text-purple-600">{emp.valoresScore}%</td>
-                  <td className="px-6 py-4 text-center font-semibold text-blue-600">{emp.resultadosScore}%</td>
-                  <td className="px-6 py-4 text-center">
-                    <span className="px-3 py-1 rounded-lg font-bold text-sm" style={{ backgroundColor: colors.bg, color: colors.text }}>
-                      {classification.code}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 text-center text-sm text-slate-600">{totalEvaluators} personas</td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
+      {/* Results */}
+      {filteredEmployees.length === 0 ? (
+        <div className="bg-white border border-slate-200 rounded-2xl py-16 text-center">
+          <div className="w-16 h-16 rounded-2xl bg-slate-100 flex items-center justify-center mx-auto mb-4">
+            <Search className="w-7 h-7 text-slate-400" />
+          </div>
+          <h3 className="text-lg font-semibold text-slate-900 mb-1">Sin resultados</h3>
+          <p className="text-sm text-slate-500">
+            Intenta cambiar los filtros o el término de búsqueda.
+          </p>
+          {(searchTerm || selectedDept !== "all") && (
+            <button
+              onClick={() => { setSearchTerm(""); setSelectedDept("all"); }}
+              className="mt-4 text-sm font-medium text-slate-700 underline underline-offset-4 hover:text-slate-900"
+            >
+              Limpiar filtros
+            </button>
+          )}
+        </div>
+      ) : viewMode === "grid" ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          {filteredEmployees.map((emp) => (
+            <EmployeeCard key={emp.id} emp={emp} onClick={() => navigateToProfile(emp)} />
+          ))}
+        </div>
+      ) : (
+        <EmployeeTable employees={filteredEmployees} onSelect={navigateToProfile} />
+      )}
     </div>
   );
 };
