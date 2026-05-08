@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { useCompanyValues } from "../contexts/CompanyValuesContext";
 import { downloadJobProfilePdf } from "../utils/jobProfilePdf";
+import RichTextarea from "../components/RichTextarea";
 
 // =====================================================================
 // MOCK DATA (frontend-only first stage)
@@ -144,8 +145,8 @@ const TextArea = (props) => (
 
 // Criteria color tokens (close to the PDF)
 const CRITERIA = {
-  ideal:        { label: "IDEAL",        bg: "bg-cyan-700",    text: "text-white", soft: "bg-cyan-100",    border: "border-cyan-400",    chip: "text-cyan-900",    chipBg: "bg-cyan-100",    ring: "ring-cyan-300" },
-  esperado:     { label: "ESPERADO",     bg: "bg-emerald-700", text: "text-white", soft: "bg-emerald-100", border: "border-emerald-400", chip: "text-emerald-900", chipBg: "bg-emerald-100", ring: "ring-emerald-300" },
+  ideal:        { label: "IDEAL",        bg: "bg-cyan-800",    text: "text-white", soft: "bg-cyan-100",    border: "border-cyan-500",    chip: "text-cyan-900",    chipBg: "bg-cyan-100",    ring: "ring-cyan-300" },
+  esperado:     { label: "ESPERADO",     bg: "bg-emerald-800", text: "text-white", soft: "bg-emerald-100", border: "border-emerald-500", chip: "text-emerald-900", chipBg: "bg-emerald-100", ring: "ring-emerald-300" },
   intermedio:   { label: "INTERMEDIO",   bg: "bg-amber-600",   text: "text-white", soft: "bg-amber-100",   border: "border-amber-400",   chip: "text-amber-900",   chipBg: "bg-amber-100",   ring: "ring-amber-300" },
   insuficiente: { label: "INSUFICIENTE", bg: "bg-rose-700",    text: "text-white", soft: "bg-rose-100",    border: "border-rose-400",    chip: "text-rose-900",    chipBg: "bg-rose-100",    ring: "ring-rose-300" },
 };
@@ -507,18 +508,18 @@ const JobProfileForm = ({ initial, onCancel, onSave, companyValues }) => {
             </Field>
           </div>
           <Field label="Propósito (¿Por qué estoy en la nómina?)" hint="¿Cuál es la razón fundamental del puesto?">
-            <TextArea rows={2} placeholder="Apoyar el desarrollo y resolución de problemas" value={data.proposito} onChange={(e) => update({ proposito: e.target.value })} />
+            <RichTextarea rows={2} placeholder="Apoyar el desarrollo y resolución de problemas" value={data.proposito} onChange={(html) => update({ proposito: html })} />
           </Field>
         </div>
 
         {/* SECTION 1: Responsabilidades */}
         <div className="bg-white border border-slate-200 rounded-2xl p-5">
           <SectionBanner number="1" title="Principales Responsabilidades y Funciones" icon={ClipboardList} />
-          <TextArea
+          <RichTextarea
             rows={5}
             placeholder="Describe las principales responsabilidades y funciones del puesto..."
             value={data.responsabilidades}
-            onChange={(e) => update({ responsabilidades: e.target.value })}
+            onChange={(html) => update({ responsabilidades: html })}
           />
         </div>
 
@@ -549,13 +550,13 @@ const JobProfileForm = ({ initial, onCancel, onSave, companyValues }) => {
           <SectionBanner number="4" title="Conocimientos / Habilidades / Competencias" icon={GraduationCap} />
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <Field label="Experiencia">
-              <TextArea rows={4} placeholder="Ej. 2 años" value={data.experiencia} onChange={(e) => update({ experiencia: e.target.value })} />
+              <RichTextarea rows={4} placeholder="Ej. 2 años" value={data.experiencia} onChange={(html) => update({ experiencia: html })} />
             </Field>
             <Field label="Conocimientos / Formación">
-              <TextArea rows={4} placeholder="Ej. Ing. en Software" value={data.conocimientos} onChange={(e) => update({ conocimientos: e.target.value })} />
+              <RichTextarea rows={4} placeholder="Ej. Ing. en Software" value={data.conocimientos} onChange={(html) => update({ conocimientos: html })} />
             </Field>
             <Field label="Competencias Soft">
-              <TextArea rows={4} placeholder="Ej. Enfoque a resultados" value={data.competenciasSoft} onChange={(e) => update({ competenciasSoft: e.target.value })} />
+              <RichTextarea rows={4} placeholder="Ej. Enfoque a resultados" value={data.competenciasSoft} onChange={(html) => update({ competenciasSoft: html })} />
             </Field>
           </div>
         </div>

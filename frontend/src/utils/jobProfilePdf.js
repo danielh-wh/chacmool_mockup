@@ -16,6 +16,33 @@ const escape = (s) =>
 
 const nl2br = (s) => escape(s).replace(/\n/g, "<br/>");
 
+// Render rich-text fields. Inputs may be either plain text (legacy data) or
+// HTML produced by CKEditor (<p>, <ul>, <ol>, <li>, <strong>, <em>, <u>,
+// <a>, <h2>, <h3>, <blockquote>, <br>). We allow the editor's safe subset
+// directly so lists and bullets survive into the PDF.
+const ALLOWED_TAGS = /^(p|ul|ol|li|strong|b|em|i|u|a|br|h2|h3|blockquote|span)$/i;
+
+const renderRich = (input) => {
+  const text = String(input ?? "").trim();
+  if (!text) return "—";
+  // If it doesn't look like HTML at all, treat as plain text.
+  if (!/<\/?[a-z][\s\S]*>/i.test(text)) return nl2br(text);
+  // Strip script/style and any tag not in the allow-list.
+  let html = text
+    .replace(/<\s*\/?\s*(script|style|iframe|object|embed)[^>]*>/gi, "")
+    .replace(/<([^/>\s]+)([^>]*)>/g, (m, tag, attrs) => {
+      if (!ALLOWED_TAGS.test(tag)) return "";
+      // Only keep href on anchors, drop everything else (style, on*, class).
+      if (tag.toLowerCase() === "a") {
+        const href = (attrs.match(/href\s*=\s*"([^"]*)"/i) || attrs.match(/href\s*=\s*'([^']*)'/i) || [, ""])[1];
+        return `<a href="${escape(href)}" target="_blank" rel="noopener">`;
+      }
+      return `<${tag}>`;
+    })
+    .replace(/<\s*\/\s*([^>\s]+)\s*>/g, (m, tag) => (ALLOWED_TAGS.test(tag) ? `</${tag}>` : ""));
+  return html;
+};
+
 const styles = `
   @page { size: A4 portrait; margin: 12mm; }
   * { box-sizing: border-box; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
@@ -38,11 +65,21 @@ const styles = `
   .field { background: #f8fafc; border: 1px solid #e2e8f0; padding: 8px 10px; }
   .field .label { font-size: 9px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 1px; margin: 0 0 3px 0; }
   .field .value { font-size: 11px; color: #0f172a; margin: 0; }
+  .field .value p { margin: 2px 0; }
+  .field .value ul, .field .value ol { margin: 4px 0 4px 16px; padding: 0; }
+  .field .value li { margin: 2px 0; }
 
   /* Section banner */
   .banner { background: #153d63; color: #ffffff; padding: 7px 14px; font-size: 10px; font-weight: 700; letter-spacing: 1.4px; text-transform: uppercase; margin: 16px 0 10px 0; page-break-after: avoid; break-after: avoid; }
 
   .text-block { background: #ffffff; border: 1px solid #e2e8f0; padding: 10px 12px; font-size: 11px; line-height: 1.5; min-height: 30px; }
+  .text-block p { margin: 4px 0; }
+  .text-block ul, .text-block ol { margin: 6px 0 6px 18px; padding: 0; }
+  .text-block li { margin: 3px 0; }
+  .text-block h2 { font-size: 13px; font-weight: 700; margin: 8px 0 4px; }
+  .text-block h3 { font-size: 12px; font-weight: 700; margin: 6px 0 3px; }
+  .text-block strong { font-weight: 700; }
+  .text-block em { font-style: italic; }
 
   /* Tables */
   table.data { border-collapse: collapse; width: 100%; font-size: 10px; table-layout: fixed; page-break-inside: avoid; break-inside: avoid; }
@@ -51,8 +88,8 @@ const styles = `
 
   .crit-title { background: #f1f5f9 !important; font-size: 9px; color: #334155 !important; text-transform: uppercase; letter-spacing: 0.6px; text-align: center !important; padding: 5px 4px !important; }
   th.crit-head { color: #ffffff !important; font-size: 9px; font-weight: 700; text-align: center !important; padding: 5px 2px !important; text-transform: uppercase; white-space: nowrap; letter-spacing: 0; }
-  th.crit-ideal,        td.crit-ideal,        .crit-ideal        { background: #0e7490 !important; }
-  th.crit-esperado,     td.crit-esperado,     .crit-esperado     { background: #047857 !important; }
+  th.crit-ideal,        td.crit-ideal,        .crit-ideal        { background: #155e75 !important; }
+  th.crit-esperado,     td.crit-esperado,     .crit-esperado     { background: #065f46 !important; }
   th.crit-intermedio,   td.crit-intermedio,   .crit-intermedio   { background: #b45309 !important; }
   th.crit-insuficiente, td.crit-insuficiente, .crit-insuficiente { background: #be123c !important; }
 
@@ -87,7 +124,7 @@ const styles = `
 `;
 
 const fieldBox = (label, value) =>
-  `<div class="field"><p class="label">${escape(label)}</p><p class="value">${nl2br(value || "—")}</p></div>`;
+  `<div class="field"><p class="label">${escape(label)}</p><div class="value">${renderRich(value)}</div></div>`;
 
 const renderCriteriaTable = (rows, opts = {}) => {
   const showResultado = opts.showResultadoColumn !== false;
@@ -176,11 +213,11 @@ const buildHtml = (profile, allValues = []) => {
 
   <div class="field">
     <p class="label">Propósito (¿Por qué estoy en la nómina?)</p>
-    <p class="value">${nl2br(profile.proposito || "—")}</p>
+    <div class="value">${renderRich(profile.proposito)}</div>
   </div>
 
   <div class="banner">1. Principales Responsabilidades y Funciones</div>
-  <div class="text-block">${nl2br(profile.responsabilidades || "—")}</div>
+  <div class="text-block">${renderRich(profile.responsabilidades)}</div>
 
   <div class="banner">2. Resultados Esperados (KPIs)</div>
   ${renderCriteriaTable(profile.kpis || [], { resultadoLabel: "Resultados Principales", metricLabel: "KPI / Cómo se mide" })}
@@ -199,18 +236,6 @@ const buildHtml = (profile, allValues = []) => {
   <div class="pills">${valoresList || `<span style="color:#94a3b8;font-size:11px;">Sin valores seleccionados.</span>`}</div>
 
   <div class="footer-meta">Generado el ${today}</div>
-
-  <script>
-    window.addEventListener('load', function() {
-      // Wait for fonts/layout to settle, then trigger the print dialog.
-      setTimeout(function() {
-        window.focus();
-        window.print();
-      }, 250);
-      // After printing (or cancelling) close the popup.
-      window.addEventListener('afterprint', function() { window.close(); });
-    });
-  </script>
 </body></html>`;
 };
 
@@ -227,24 +252,24 @@ export const downloadJobProfilePdf = async (profile, allValues = []) => {
   iframe.style.border = "0";
   document.body.appendChild(iframe);
 
-  const cleanup = () => {
-    setTimeout(() => {
-      if (iframe.parentNode) iframe.parentNode.removeChild(iframe);
-    }, 1000);
-  };
-
   iframe.onload = () => {
     try {
       const win = iframe.contentWindow;
-      win.focus();
-      win.print();
-      // Some browsers fire afterprint on the iframe window
-      win.addEventListener("afterprint", cleanup);
-      // Fallback cleanup after a generous timeout
-      setTimeout(cleanup, 60_000);
+      // Single print() call from the parent — the iframe HTML no longer
+      // contains its own auto-print script, so the dialog opens exactly once.
+      setTimeout(() => {
+        win.focus();
+        win.print();
+      }, 200);
+      const removeIframe = () => {
+        if (iframe.parentNode) iframe.parentNode.removeChild(iframe);
+      };
+      win.addEventListener("afterprint", removeIframe);
+      // Fallback: remove iframe after 60s in case afterprint never fires.
+      setTimeout(removeIframe, 60_000);
     } catch (e) {
       console.error("Print error:", e);
-      cleanup();
+      if (iframe.parentNode) iframe.parentNode.removeChild(iframe);
     }
   };
 

@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { useCompanyValues } from "../contexts/CompanyValuesContext";
 import { downloadJobProfilePdf } from "../utils/jobProfilePdf";
+import RichTextarea from "../components/RichTextarea";
 
 // =====================================================================
 // MOCK DATA  (V2 lleva su propio catálogo independiente del V1)
@@ -122,8 +123,8 @@ const TextArea = (props) => (
 );
 
 const CRITERIA = {
-  ideal:        { label: "IDEAL",        bg: "bg-cyan-700",    text: "text-white", soft: "bg-cyan-100",    chip: "text-cyan-900",    ring: "focus:ring-cyan-400" },
-  esperado:     { label: "ESPERADO",     bg: "bg-emerald-700", text: "text-white", soft: "bg-emerald-100", chip: "text-emerald-900", ring: "focus:ring-emerald-400" },
+  ideal:        { label: "IDEAL",        bg: "bg-cyan-800",    text: "text-white", soft: "bg-cyan-100",    chip: "text-cyan-900",    ring: "focus:ring-cyan-500" },
+  esperado:     { label: "ESPERADO",     bg: "bg-emerald-800", text: "text-white", soft: "bg-emerald-100", chip: "text-emerald-900", ring: "focus:ring-emerald-500" },
   intermedio:   { label: "INTERMEDIO",   bg: "bg-amber-600",   text: "text-white", soft: "bg-amber-100",   chip: "text-amber-900",   ring: "focus:ring-amber-400" },
   insuficiente: { label: "INSUFICIENTE", bg: "bg-rose-700",    text: "text-white", soft: "bg-rose-100",    chip: "text-rose-900",    ring: "focus:ring-rose-400" },
 };
@@ -414,18 +415,19 @@ const JobProfileFormV2 = ({ initial, onCancel, onSave, companyValues }) => {
             </Field>
           </div>
           <Field label="Propósito (¿Por qué estoy en la nómina?)" hint="¿Cuál es la razón fundamental del puesto?">
-            <TextArea rows={2} placeholder="Apoyar el desarrollo y resolución de problemas" value={data.proposito} onChange={(e) => update({ proposito: e.target.value })} />
+            <RichTextarea rows={2} placeholder="Apoyar el desarrollo y resolución de problemas" value={data.proposito} onChange={(html) => update({ proposito: html })} testId="proposito-editor" />
           </Field>
         </div>
 
         {/* SECTION 1: Responsabilidades */}
         <div className="bg-white border border-slate-200 rounded-2xl p-5">
           <SectionBanner number="1" title="Principales Responsabilidades y Funciones" icon={ClipboardList} />
-          <TextArea
+          <RichTextarea
             rows={5}
             placeholder="Describe las principales responsabilidades y funciones del puesto..."
             value={data.responsabilidades}
-            onChange={(e) => update({ responsabilidades: e.target.value })}
+            onChange={(html) => update({ responsabilidades: html })}
+            testId="responsabilidades-editor"
           />
         </div>
 
@@ -464,13 +466,13 @@ const JobProfileFormV2 = ({ initial, onCancel, onSave, companyValues }) => {
           <SectionBanner number="4" title="Conocimientos / Habilidades / Competencias" icon={GraduationCap} />
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <Field label="Experiencia">
-              <TextArea rows={4} placeholder="Ej. 2 años" value={data.experiencia} onChange={(e) => update({ experiencia: e.target.value })} />
+              <RichTextarea rows={4} placeholder="Ej. 2 años" value={data.experiencia} onChange={(html) => update({ experiencia: html })} />
             </Field>
             <Field label="Conocimientos / Formación">
-              <TextArea rows={4} placeholder="Ej. Ing. en Software" value={data.conocimientos} onChange={(e) => update({ conocimientos: e.target.value })} />
+              <RichTextarea rows={4} placeholder="Ej. Ing. en Software" value={data.conocimientos} onChange={(html) => update({ conocimientos: html })} />
             </Field>
             <Field label="Competencias Soft">
-              <TextArea rows={4} placeholder="Ej. Enfoque a resultados" value={data.competenciasSoft} onChange={(e) => update({ competenciasSoft: e.target.value })} />
+              <RichTextarea rows={4} placeholder="Ej. Enfoque a resultados" value={data.competenciasSoft} onChange={(html) => update({ competenciasSoft: html })} />
             </Field>
           </div>
         </div>
