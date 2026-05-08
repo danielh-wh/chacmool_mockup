@@ -10,6 +10,7 @@ import KPIsView from './pages/KPIsView';
 import Evaluations360View from './pages/Evaluations360View';
 import PDIView from './pages/PDIView';
 import EmployeeProfile from './pages/EmployeeProfile';
+import JobProfiles from './pages/JobProfiles';
 import { 
   Users, 
   Target, 
@@ -982,6 +983,7 @@ const Sidebar = ({ isAdmin, setIsAdmin }) => {
     { path: `/perfil/${user?.employee_id || '1'}`, icon: User, label: "Mi Perfil", description: "Información personal", roles: ['admin', 'empleado'] },
     { path: "/9box", icon: Grid3X3, label: "Empleado A", description: "Empleados A, B, C", roles: ['admin', 'empleado'] },
     { path: "/employees", icon: Users, label: "Empleados", description: "Gestión de personal", roles: ['admin'] },
+    { path: "/perfiles-puesto", icon: Briefcase, label: "Perfiles de Puesto", description: "Catálogo de descripciones", roles: ['admin'] },
     { path: "/evaluations", icon: MessageSquare, label: "Evaluaciones 360", description: "Plantillas y enlaces", roles: ['admin', 'empleado'] },
     { path: "/pdi", icon: Target, label: "PDI", description: "Plan de Desarrollo", roles: ['admin'] },
     { path: "/aciertos-desaciertos", icon: ClipboardList, label: "Aciertos y Desaciertos", description: "Evaluación bilateral", roles: ['admin'] },
@@ -1825,6 +1827,7 @@ const AppContent = () => {
             <Route path="/" element={<Dashboard isAdmin={isAdmin} />} />
             <Route path="/9box" element={<EmpleadoAPage isAdmin={isAdmin} />} />
             <Route path="/employees" element={<EmployeeList isAdmin={isAdmin} />} />
+            <Route path="/perfiles-puesto" element={<JobProfiles isAdmin={isAdmin} />} />
             <Route path="/evaluations" element={<Evaluations360View isAdmin={isAdmin} />} />
             <Route path="/pdi" element={<PDIView isAdmin={isAdmin} />} />
             <Route path="/aciertos-desaciertos" element={<AciertosDesaciertosView isAdmin={isAdmin} />} />
