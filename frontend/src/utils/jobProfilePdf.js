@@ -51,7 +51,7 @@ const styles = `
   /* Criterion title row + 4 colour cells. NO NESTED TABLES. !important needed
      because table.data thead th selector has higher specificity than .crit-* */
   .crit-title  { background: #f1f5f9 !important; font-size: 9px; font-weight: 700; color: #334155 !important; text-transform: uppercase; letter-spacing: 0.8px; text-align: center !important; padding: 6px 4px !important; border: 1px solid #e2e8f0; vertical-align: middle !important; }
-  .crit-head { color: #ffffff !important; font-size: 9px; font-weight: 700; text-align: center !important; letter-spacing: 0; padding: 6px 4px !important; border: 1px solid #e2e8f0; vertical-align: middle !important; text-transform: uppercase !important; }
+  .crit-head { color: #ffffff !important; font-size: 8px; font-weight: 700; text-align: center !important; letter-spacing: 0; padding: 6px 2px !important; border: 1px solid #e2e8f0; vertical-align: middle !important; text-transform: uppercase !important; white-space: nowrap !important; }
   th.crit-ideal,        td.crit-ideal,        .crit-ideal        { background: #06b6d4 !important; }
   th.crit-esperado,     td.crit-esperado,     .crit-esperado     { background: #10b981 !important; }
   th.crit-intermedio,   td.crit-intermedio,   .crit-intermedio   { background: #f59e0b !important; }
@@ -63,20 +63,26 @@ const styles = `
   .cell-intermedio   { background: #fffbeb !important; color: #b45309; font-weight: 700; text-align: center; }
   .cell-insuficiente { background: #fff1f2 !important; color: #be123c; font-weight: 700; text-align: center; }
 
-  /* Pills container — kill inherited line-height & whitespace between inline-blocks */
-  .pills { margin: 0; padding: 0; font-size: 0; line-height: 0; }
+  /* Pills container. Important: do NOT set font-size:0 or line-height:0 here
+     (html2canvas mis-renders inline-block descendants). Just a normal block. */
+  .pills { margin: 0; padding: 0; }
+  /* Pills: the ONLY html2canvas-safe centering pattern is height === line-height.
+     This forces text to sit exactly on the vertical centre of the box. */
   .pill {
     display: inline-block;
-    padding: 6px 12px 4px 12px;
-    border-radius: 14px;
+    height: 22px;
+    line-height: 22px;
+    padding: 0 12px;
+    border-radius: 11px;
     font-size: 10px;
-    line-height: 14px;
     background: #f1f5f9;
     color: #334155;
     border: 1px solid #e2e8f0;
     margin: 0 6px 6px 0;
     font-weight: 500;
     vertical-align: top;
+    box-sizing: border-box;
+    white-space: nowrap;
   }
   .pill.active { background: #0f172a; color: #ffffff; border-color: #0f172a; }
 
@@ -104,10 +110,10 @@ const renderCriteriaTable = (rows, opts = {}) => {
   const empty = !rows || rows.length === 0;
 
   // Column widths sum to 100%.
-  // KPI (with resultado): 22% + 22% + 14% + 4 × 10.5% = 86% (the borders eat the rest).
-  const W_RES = 22;
-  const W_METRIC = showResultado ? 22 : 36;
-  const W_TIME = 14;
+  // Criterio columns need more space so "INSUFICIENTE" doesn't wrap.
+  const W_RES = 18;
+  const W_METRIC = showResultado ? 18 : 32;
+  const W_TIME = 10;
   const W_CRIT = (100 - (showResultado ? W_RES : 0) - W_METRIC - W_TIME) / 4;
 
   const totalCols = (showResultado ? 1 : 0) + 2 + 4;
