@@ -39,6 +39,13 @@ const DEPARTMENTS = [
 
 const TEMPORALIDADES = ["Diaria", "Semanal", "Mensual", "Trimestral", "Semestral", "Anual"];
 
+// Strip HTML tags from rich-text fields when rendering plain previews (catalog rows).
+const stripHtml = (s) =>
+  String(s || "")
+    .replace(/<[^>]*>/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
 const SEED_PROFILES = [
   {
     id: "JP-001",
@@ -80,6 +87,44 @@ const SEED_PROFILES = [
     competenciasSoft: "Liderazgo, comunicación",
     valores: ["Identidad", "Trabajo en equipo"],
     kpisCount: 2,
+  },
+  {
+    id: "JP-003",
+    puesto: "Gerente de Ventas",
+    departamento: "Ventas",
+    jefeDirecto: "Gerente General",
+    proposito:
+      "<p>Desarrollar y dirigir al equipo de ventas para lograr los objetivos comerciales.</p>",
+    responsabilidades:
+      "<ul><li>Garantizar cumplimiento de metas de ingresos y clientes nuevos.</li><li>Identificar y validar nuevas zonas o oportunidades de expansión comercial.</li><li>Coordinar con Operaciones para asegurar la correcta entrega de lo vendido.</li><li>Capacitar al equipo de atención al cliente y asesor de ventas.</li><li>Supervisar cumplimiento de metas de ventas.</li><li>Colaborar con el equipo de soporte la prueba y despliegue de nuevas zonas.</li><li>Supervisar la experiencia del cliente durante los primeros 90 días posteriores a la venta.</li><li>Supervisar y exigir cumplimiento de KPI's comerciales.</li><li>Diseñar e implementar estrategias comerciales y mejoras en procesos de venta.</li><li>Dar retroalimentación y coaching al equipo comercial.</li></ul>",
+    kpis: [
+      { id: "gv-k1", resultado: "Ingresos generados por ventas", kpi: "Monto en MXN", temporalidad: "Mensual", ideal: "$100,000", esperado: "$65,000", intermedio: "Entre V y R", insuficiente: "$55,000" },
+      { id: "gv-k2", resultado: "Clientes nuevos por mes", kpi: "Cantidad de clientes", temporalidad: "Mensual", ideal: "150", esperado: "120", intermedio: "Entre V y R", insuficiente: "100" },
+      { id: "gv-k3", resultado: "Proyectos nuevos por mes", kpi: "Cantidad de proyectos", temporalidad: "Mensual", ideal: "2", esperado: "1", intermedio: "Entre V y R", insuficiente: "0" },
+      { id: "gv-k4", resultado: "% de cancelaciones en los primeros 90 días", kpi: "Porcentaje de cancelación", temporalidad: "Mensual", ideal: "5%", esperado: "7%", intermedio: "Entre V y R", insuficiente: "10%" },
+    ],
+    okrs: [
+      { id: "gv-o1", descripcion: "Expandir cobertura comercial a 2 nuevas zonas", temporalidad: "Trimestral", ideal: "2 zonas", esperado: "1 zona", intermedio: "En piloto", insuficiente: "Sin avance" },
+      { id: "gv-o2", descripcion: "Incrementar ventas anuales un 25% vs año anterior", temporalidad: "Anual", ideal: "+25%", esperado: "+15%", intermedio: "+5%", insuficiente: "0%" },
+      { id: "gv-o3", descripcion: "Consolidar liderazgo de mercado en la región", temporalidad: "Anual", ideal: "#1 en región", esperado: "Top 3", intermedio: "Top 5", insuficiente: "Fuera de top" },
+    ],
+    experiencia:
+      "<ul><li>4–6 años de experiencia en ventas o gestión comercial.</li><li>Experiencia liderando equipos de ventas y cumplimiento de metas comerciales.</li><li>Experiencia gestionando indicadores comerciales (ventas, clientes nuevos, conversión).</li></ul>",
+    conocimientos:
+      "<ul><li>Licenciatura en Administración, Marketing, Negocios o carrera afín.</li><li>Procesos y embudos de ventas (pipeline).</li><li>Análisis de indicadores comerciales (KPI).</li><li>CRM o sistemas de gestión de ventas.</li><li>ERP comercial o sistema de clientes.</li></ul>",
+    competenciasSoft:
+      "<ul><li>Liderazgo y desarrollo de equipos.</li><li>Orientado a resultados.</li><li>Influencia y liderazgo comercial.</li><li>Toma de decisiones basada en datos.</li></ul>",
+    valores: [
+      "Identidad",
+      "Hacemos que las cosas sucedan",
+      "Hazlo ahora",
+      "Compromiso con resultados",
+      "Mejora continua",
+      "Trabajo en equipo",
+      "Honestidad",
+      "Servicio al cliente",
+    ],
+    kpisCount: 4,
   },
 ];
 
@@ -705,7 +750,7 @@ const ProfileCatalog = ({ profiles, onCreate, onEdit, onDelete, isAdmin }) => {
                   </div>
                   <div className="min-w-0">
                     <p className="font-semibold text-slate-900 truncate">{p.puesto}</p>
-                    <p className="text-xs text-slate-500 truncate">{p.proposito || "Sin propósito definido"}</p>
+                    <p className="text-xs text-slate-500 truncate">{stripHtml(p.proposito) || "Sin propósito definido"}</p>
                   </div>
                 </div>
                 <div>
