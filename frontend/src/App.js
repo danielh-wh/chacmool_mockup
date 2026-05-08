@@ -11,6 +11,7 @@ import Evaluations360View from './pages/Evaluations360View';
 import PDIView from './pages/PDIView';
 import EmployeeProfile from './pages/EmployeeProfile';
 import JobProfiles from './pages/JobProfiles';
+import JobProfilesV2 from './pages/JobProfilesV2';
 import { 
   Users, 
   Target, 
@@ -984,6 +985,7 @@ const Sidebar = ({ isAdmin, setIsAdmin }) => {
     { path: "/9box", icon: Grid3X3, label: "Empleado A", description: "Empleados A, B, C", roles: ['admin', 'empleado'] },
     { path: "/employees", icon: Users, label: "Empleados", description: "Gestión de personal", roles: ['admin'] },
     { path: "/perfiles-puesto", icon: Briefcase, label: "Perfiles de Puesto", description: "Catálogo de descripciones", roles: ['admin'] },
+    { path: "/perfiles-puesto-v2", icon: Briefcase, label: "Perfiles V2", description: "Edición tipo Excel", roles: ['admin'], badge: "V2" },
     { path: "/evaluations", icon: MessageSquare, label: "Evaluaciones 360", description: "Plantillas y enlaces", roles: ['admin', 'empleado'] },
     { path: "/pdi", icon: Target, label: "PDI", description: "Plan de Desarrollo", roles: ['admin'] },
     { path: "/aciertos-desaciertos", icon: ClipboardList, label: "Aciertos y Desaciertos", description: "Evaluación bilateral", roles: ['admin'] },
@@ -1036,7 +1038,14 @@ const Sidebar = ({ isAdmin, setIsAdmin }) => {
               >
                 <item.icon className="w-5 h-5" />
                 <div className="flex-1">
-                  <span className="block">{item.label}</span>
+                  <span className="flex items-center gap-1.5">
+                    {item.label}
+                    {item.badge && (
+                      <span className="px-1.5 py-0.5 bg-slate-900 text-white text-[9px] font-bold rounded tracking-wider leading-none">
+                        {item.badge}
+                      </span>
+                    )}
+                  </span>
                   <span className="text-xs text-slate-400">{item.description}</span>
                 </div>
               </NavLink>
@@ -1828,6 +1837,7 @@ const AppContent = () => {
             <Route path="/9box" element={<EmpleadoAPage isAdmin={isAdmin} />} />
             <Route path="/employees" element={<EmployeeList isAdmin={isAdmin} />} />
             <Route path="/perfiles-puesto" element={<JobProfiles isAdmin={isAdmin} />} />
+            <Route path="/perfiles-puesto-v2" element={<JobProfilesV2 isAdmin={isAdmin} />} />
             <Route path="/evaluations" element={<Evaluations360View isAdmin={isAdmin} />} />
             <Route path="/pdi" element={<PDIView isAdmin={isAdmin} />} />
             <Route path="/aciertos-desaciertos" element={<AciertosDesaciertosView isAdmin={isAdmin} />} />
