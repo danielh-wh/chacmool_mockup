@@ -48,35 +48,35 @@ const styles = `
   table.data th, table.data td { border: 1px solid #e2e8f0; padding: 7px 8px; vertical-align: middle; word-wrap: break-word; }
   table.data thead th { background: #f1f5f9; font-size: 9px; font-weight: 700; color: #334155; text-transform: uppercase; letter-spacing: 0.5px; text-align: left; }
 
-  /* Criterion title row + 4 colour cells. NO NESTED TABLES. */
-  .crit-title  { background: #f1f5f9; font-size: 9px; font-weight: 700; color: #334155; text-transform: uppercase; letter-spacing: 0.8px; text-align: center !important; padding: 5px 0 !important; border: 1px solid #e2e8f0; vertical-align: middle; text-indent: 0.8px; }
-  .crit-head { color: #ffffff !important; font-size: 9px; font-weight: 700; text-align: center !important; letter-spacing: 0; padding: 5px 0 !important; border: 1px solid #e2e8f0; vertical-align: middle; }
-  .crit-ideal        { background: #06b6d4; }
-  .crit-esperado     { background: #10b981; }
-  .crit-intermedio   { background: #f59e0b; }
-  .crit-insuficiente { background: #f43f5e; }
+  /* Criterion title row + 4 colour cells. NO NESTED TABLES. !important needed
+     because table.data thead th selector has higher specificity than .crit-* */
+  .crit-title  { background: #f1f5f9 !important; font-size: 9px; font-weight: 700; color: #334155 !important; text-transform: uppercase; letter-spacing: 0.8px; text-align: center !important; padding: 6px 4px !important; border: 1px solid #e2e8f0; vertical-align: middle !important; }
+  .crit-head { color: #ffffff !important; font-size: 9px; font-weight: 700; text-align: center !important; letter-spacing: 0; padding: 6px 4px !important; border: 1px solid #e2e8f0; vertical-align: middle !important; text-transform: uppercase !important; }
+  th.crit-ideal,        td.crit-ideal,        .crit-ideal        { background: #06b6d4 !important; }
+  th.crit-esperado,     td.crit-esperado,     .crit-esperado     { background: #10b981 !important; }
+  th.crit-intermedio,   td.crit-intermedio,   .crit-intermedio   { background: #f59e0b !important; }
+  th.crit-insuficiente, td.crit-insuficiente, .crit-insuficiente { background: #f43f5e !important; }
 
   /* Coloured cell bodies */
-  .cell-ideal        { background: #ecfeff; color: #0e7490; font-weight: 700; text-align: center; }
-  .cell-esperado     { background: #ecfdf5; color: #047857; font-weight: 700; text-align: center; }
-  .cell-intermedio   { background: #fffbeb; color: #b45309; font-weight: 700; text-align: center; }
-  .cell-insuficiente { background: #fff1f2; color: #be123c; font-weight: 700; text-align: center; }
+  .cell-ideal        { background: #ecfeff !important; color: #0e7490; font-weight: 700; text-align: center; }
+  .cell-esperado     { background: #ecfdf5 !important; color: #047857; font-weight: 700; text-align: center; }
+  .cell-intermedio   { background: #fffbeb !important; color: #b45309; font-weight: 700; text-align: center; }
+  .cell-insuficiente { background: #fff1f2 !important; color: #be123c; font-weight: 700; text-align: center; }
 
-  /* Pills: html2canvas-safe — only symmetric padding, natural line-height,
-     no fixed height, no line-height:0 wrappers. */
-  .pills { margin: 0; padding: 0; }
+  /* Pills container — kill inherited line-height & whitespace between inline-blocks */
+  .pills { margin: 0; padding: 0; font-size: 0; line-height: 0; }
   .pill {
     display: inline-block;
-    padding: 5px 14px 5px 14px;
-    border-radius: 999px;
+    padding: 6px 12px 4px 12px;
+    border-radius: 14px;
     font-size: 10px;
-    line-height: 1.3;
+    line-height: 14px;
     background: #f1f5f9;
     color: #334155;
     border: 1px solid #e2e8f0;
     margin: 0 6px 6px 0;
     font-weight: 500;
-    vertical-align: middle;
+    vertical-align: top;
   }
   .pill.active { background: #0f172a; color: #ffffff; border-color: #0f172a; }
 
