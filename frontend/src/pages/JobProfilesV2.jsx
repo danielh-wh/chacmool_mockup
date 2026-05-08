@@ -210,6 +210,18 @@ const EditableCriteriaTable = ({
 
   return (
     <div>
+      <div className="flex justify-end mb-2">
+        <button
+          type="button"
+          onClick={handleAddRow}
+          className="text-white text-xs font-semibold px-3 py-1.5 inline-flex items-center gap-1.5 hover:opacity-90 transition-opacity"
+          style={{ backgroundColor: "#153d63" }}
+          data-testid="add-row-btn"
+        >
+          <Plus className="w-3.5 h-3.5" strokeWidth={2.5} />
+          Añadir fila
+        </button>
+      </div>
       <div className="border border-slate-300 overflow-hidden bg-white">
         <div className="overflow-x-auto">
           <table className="w-full text-sm" style={{ tableLayout: "fixed" }}>
@@ -332,18 +344,6 @@ const EditableCriteriaTable = ({
             </tbody>
           </table>
         </div>
-      </div>
-      <div className="flex justify-end mt-2">
-        <button
-          type="button"
-          onClick={handleAddRow}
-          className="text-white text-xs font-semibold px-3 py-1.5 inline-flex items-center gap-1.5 hover:opacity-90 transition-opacity"
-          style={{ backgroundColor: "#153d63" }}
-          data-testid="add-row-btn"
-        >
-          <Plus className="w-3.5 h-3.5" strokeWidth={2.5} />
-          Añadir fila
-        </button>
       </div>
     </div>
   );

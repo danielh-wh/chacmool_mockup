@@ -571,13 +571,14 @@ const JobProfileForm = ({ initial, onCancel, onSave, companyValues }) => {
         {/* SECTION 2: KPIs */}
         <div className="bg-white border border-slate-200 rounded-2xl p-5 space-y-4">
           <SectionBanner number="2" title="Resultados Esperados (KPIs)" icon={Target} />
-          <CriteriaTable rows={data.kpis} onRemoveRow={removeKpi} />
           <AddKpiRow onAdd={addKpi} />
+          <CriteriaTable rows={data.kpis} onRemoveRow={removeKpi} />
         </div>
 
         {/* SECTION 3: OKRs */}
         <div className="bg-white border border-slate-200 rounded-2xl p-5 space-y-4">
           <SectionBanner number="3" title="Proyectos Estratégicos / OKRs" icon={FileText} />
+          <AddOkrRow onAdd={addOkr} />
           <CriteriaTable
             rows={data.okrs}
             onRemoveRow={removeOkr}
@@ -587,7 +588,6 @@ const JobProfileForm = ({ initial, onCancel, onSave, companyValues }) => {
             metricSubtitle="—"
             showResultadoColumn={false}
           />
-          <AddOkrRow onAdd={addOkr} />
         </div>
 
         {/* SECTION 4: Conocimientos */}

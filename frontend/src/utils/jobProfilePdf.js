@@ -62,19 +62,25 @@ const styles = `
 
   /* Three-column grids */
   .grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 10px; }
-  .field { background: #f8fafc; border: 1px solid #e2e8f0; padding: 8px 10px; }
-  .field .label { font-size: 9px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 1px; margin: 0 0 3px 0; }
+  .field { background: #f8fafc; border: 1px solid #94a3b8; padding: 10px 12px; }
+  .field .label { font-size: 9px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 1px; margin: 0 0 5px 0; }
   .field .value { font-size: 11px; color: #0f172a; margin: 0; }
   .field .value p { margin: 2px 0; }
-  .field .value ul, .field .value ol { margin: 4px 0 4px 16px; padding: 0; }
+  .field .value ul, .field .value ol { margin: 4px 0 4px 18px; padding: 0; }
   .field .value li { margin: 2px 0; }
+  .field .value strong { font-weight: 700; }
+  .field .value em { font-style: italic; }
 
   /* Section banner */
   .banner { background: #153d63; color: #ffffff; padding: 7px 14px; font-size: 10px; font-weight: 700; letter-spacing: 1.4px; text-transform: uppercase; margin: 16px 0 10px 0; page-break-after: avoid; break-after: avoid; }
 
-  .text-block { background: #ffffff; border: 1px solid #e2e8f0; padding: 10px 12px; font-size: 11px; line-height: 1.5; min-height: 30px; }
+  .text-block { background: #ffffff; border: 1px solid #94a3b8; padding: 12px 14px; font-size: 11px; line-height: 1.5; min-height: 36px; }
   .text-block p { margin: 4px 0; }
-  .text-block ul, .text-block ol { margin: 6px 0 6px 18px; padding: 0; }
+  .text-block p:first-child { margin-top: 0; }
+  .text-block p:last-child { margin-bottom: 0; }
+  .text-block ul, .text-block ol { margin: 6px 0 6px 20px; padding: 0; }
+  .text-block ul:first-child, .text-block ol:first-child { margin-top: 0; }
+  .text-block ul:last-child, .text-block ol:last-child { margin-bottom: 0; }
   .text-block li { margin: 3px 0; }
   .text-block h2 { font-size: 13px; font-weight: 700; margin: 8px 0 4px; }
   .text-block h3 { font-size: 12px; font-weight: 700; margin: 6px 0 3px; }
