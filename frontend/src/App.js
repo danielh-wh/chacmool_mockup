@@ -12,6 +12,8 @@ import PDIView from './pages/PDIView';
 import EmployeeProfile from './pages/EmployeeProfile';
 import JobProfiles from './pages/JobProfiles';
 import JobProfilesV2 from './pages/JobProfilesV2';
+import CompanySettings from './pages/CompanySettings';
+import { CompanyValuesProvider } from './contexts/CompanyValuesContext';
 import { 
   Users, 
   Target, 
@@ -990,6 +992,7 @@ const Sidebar = ({ isAdmin, setIsAdmin }) => {
     { path: "/pdi", icon: Target, label: "PDI", description: "Plan de Desarrollo", roles: ['admin'] },
     { path: "/aciertos-desaciertos", icon: ClipboardList, label: "Aciertos y Desaciertos", description: "Evaluación bilateral", roles: ['admin'] },
     { path: "/kpis", icon: Target, label: "KPIs", description: "Indicadores clave", roles: ['admin'] },
+    { path: "/configuracion", icon: Settings, label: "Configuración", description: "Valores de empresa", roles: ['admin'] },
   ];
   
   // Filtrar navItems basado en el rol del usuario
@@ -1838,6 +1841,7 @@ const AppContent = () => {
             <Route path="/employees" element={<EmployeeList isAdmin={isAdmin} />} />
             <Route path="/perfiles-puesto" element={<JobProfiles isAdmin={isAdmin} />} />
             <Route path="/perfiles-puesto-v2" element={<JobProfilesV2 isAdmin={isAdmin} />} />
+            <Route path="/configuracion" element={<CompanySettings isAdmin={isAdmin} />} />
             <Route path="/evaluations" element={<Evaluations360View isAdmin={isAdmin} />} />
             <Route path="/pdi" element={<PDIView isAdmin={isAdmin} />} />
             <Route path="/aciertos-desaciertos" element={<AciertosDesaciertosView isAdmin={isAdmin} />} />
@@ -1855,9 +1859,11 @@ const AppContent = () => {
 function App() {
   return (
     <AuthProvider>
-      <BrowserRouter>
-        <AppContent />
-      </BrowserRouter>
+      <CompanyValuesProvider>
+        <BrowserRouter>
+          <AppContent />
+        </BrowserRouter>
+      </CompanyValuesProvider>
     </AuthProvider>
   );
 }

@@ -17,7 +17,10 @@ import {
   Trash2,
   Check,
   Sparkles,
+  Download,
 } from "lucide-react";
+import { useCompanyValues } from "../contexts/CompanyValuesContext";
+import { downloadJobProfilePdf } from "../utils/jobProfilePdf";
 
 // =====================================================================
 // MOCK DATA  (V2 lleva su propio catálogo independiente del V1)
@@ -34,17 +37,6 @@ const DEPARTMENTS = [
 ];
 
 const TEMPORALIDADES = ["Diaria", "Semanal", "Mensual", "Trimestral", "Semestral", "Anual"];
-
-const COMPANY_VALUES = [
-  "Identidad",
-  "Hacemos que las cosas sucedan",
-  "Hazlo ahora",
-  "Compromiso con resultados",
-  "Mejora continua",
-  "Trabajo en equipo",
-  "Honestidad",
-  "Servicio al cliente",
-];
 
 const SEED_PROFILES_V2 = [
   {
@@ -316,8 +308,11 @@ const emptyProfile = {
   valores: [],
 };
 
-const JobProfileFormV2 = ({ initial, onCancel, onSave }) => {
-  const [data, setData] = useState(initial || emptyProfile);
+const JobProfileFormV2 = ({ initial, onCancel, onSave, companyValues }) => {
+  // Para nuevos perfiles: pre-seleccionar TODOS los valores de empresa.
+  const initialData = initial || { ...emptyProfile, valores: [...companyValues] };
+  const [data, setData] = useState(initialData);
+  const [downloading, setDownloading] = useState(false);
 
   const update = (patch) => setData((d) => ({ ...d, ...patch }));
 
@@ -362,6 +357,27 @@ const JobProfileFormV2 = ({ initial, onCancel, onSave }) => {
             Modo edición tipo hoja de cálculo · escribe directamente en cada celda.
           </p>
         </div>
+        <button
+          type="button"
+          disabled={downloading || !data.puesto.trim()}
+          onClick={async () => {
+            setDownloading(true);
+            try {
+              await downloadJobProfilePdf(data, companyValues);
+            } catch (e) {
+              console.error(e);
+              alert("No se pudo generar el PDF. Intenta de nuevo.");
+            } finally {
+              setDownloading(false);
+            }
+          }}
+          className="inline-flex items-center gap-2 px-4 py-2.5 bg-white border border-slate-200 hover:border-slate-300 text-slate-700 hover:text-slate-900 rounded-xl text-sm font-medium shadow-sm hover:bg-slate-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+          data-testid="download-pdf-btn"
+          title={!data.puesto.trim() ? "Define el nombre del puesto primero" : "Descargar como PDF"}
+        >
+          <Download className="w-4 h-4" />
+          {downloading ? "Generando..." : "Descargar PDF"}
+        </button>
       </div>
 
       <div className="space-y-6">
@@ -447,7 +463,7 @@ const JobProfileFormV2 = ({ initial, onCancel, onSave }) => {
           <SectionBanner number="5" title="Valores de Empresa" icon={Heart} />
           <p className="text-sm text-slate-500">Selecciona los valores que más identifican a este puesto.</p>
           <div className="flex flex-wrap gap-2">
-            {COMPANY_VALUES.map((v) => {
+            {companyValues.map((v) => {
               const active = data.valores.includes(v);
               return (
                 <button
@@ -645,6 +661,7 @@ const ProfileCatalogV2 = ({ profiles, onCreate, onEdit, onDelete, isAdmin }) => 
 // MAIN PAGE V2
 // =====================================================================
 const JobProfilesV2 = ({ isAdmin }) => {
+  const { values: companyValues } = useCompanyValues();
   const [profiles, setProfiles] = useState(SEED_PROFILES_V2);
   const [view, setView] = useState({ mode: "list", editing: null });
 
@@ -667,7 +684,14 @@ const JobProfilesV2 = ({ isAdmin }) => {
   };
 
   if (view.mode === "form") {
-    return <JobProfileFormV2 initial={view.editing} onCancel={handleCancel} onSave={handleSave} />;
+    return (
+      <JobProfileFormV2
+        initial={view.editing}
+        onCancel={handleCancel}
+        onSave={handleSave}
+        companyValues={companyValues}
+      />
+    );
   }
   return (
     <ProfileCatalogV2
