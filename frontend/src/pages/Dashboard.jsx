@@ -15,13 +15,14 @@ import {
   TrendingUp,
   CalendarCheck2,
 } from 'lucide-react';
-import { employeesAPI, empleadoAAPI, dashboardAPI } from '../services/api';
+import { employeesAPI, empleadoAAPI, dashboardAPI, climateAPI } from '../services/api';
 import { classificationMatrix, classificationColors } from '../utils/classifications';
 
 const Dashboard = ({ isAdmin }) => {
   const [employees, setEmployees] = useState([]);
   const [empleadoAResults, setEmpleadoAResults] = useState([]);
   const [employeeSummary, setEmployeeSummary] = useState(null);
+  const [pendingSurveys, setPendingSurveys] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -37,8 +38,12 @@ const Dashboard = ({ isAdmin }) => {
           setEmployees(employeesData);
           setEmpleadoAResults(resultsData);
         } else {
-          const summaryData = await dashboardAPI.getEmployeeSummary();
+          const [summaryData, pendingData] = await Promise.all([
+            dashboardAPI.getEmployeeSummary(),
+            climateAPI.getPendingSurveys().catch(() => ({ surveys: [] })),
+          ]);
           setEmployeeSummary(summaryData.summary || null);
+          setPendingSurveys(pendingData.surveys || []);
         }
       } catch (error) {
         console.error('Error fetching dashboard data:', error);
@@ -93,9 +98,11 @@ const Dashboard = ({ isAdmin }) => {
       vacaciones: { saldo_dias: 0, usados_periodo: 0, proximas: [] },
       objetivos: [],
       alertas: [],
+      anuncios: [],
     };
 
     const nextActivity = summary.actividades?.[0];
+    const nextPendingSurvey = pendingSurveys?.[0];
 
     return (
       <div className="animate-fade-in space-y-6">
@@ -106,7 +113,7 @@ const Dashboard = ({ isAdmin }) => {
           <p className="text-slate-500 mt-1">Resumen de tu periodo: {summary.periodo}</p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-6 gap-4">
           <div className="bg-white border border-slate-200 rounded-2xl p-5">
             <Wallet className="w-5 h-5 text-emerald-500 mb-2" />
             <p className="text-sm text-slate-500">Comisiones y bonos</p>
@@ -146,6 +153,15 @@ const Dashboard = ({ isAdmin }) => {
             <p className="text-sm text-slate-500">Vacaciones</p>
             <p className="text-2xl font-bold text-slate-900">{summary.vacaciones?.saldo_dias || 0} días</p>
             <p className="text-xs text-slate-500 mt-1">Usados: {summary.vacaciones?.usados_periodo || 0}</p>
+
+          <div className="bg-white border border-slate-200 rounded-2xl p-5">
+            <CheckCircle2 className="w-5 h-5 text-indigo-500 mb-2" />
+            <p className="text-sm text-slate-500">Encuestas pendientes</p>
+            <p className="text-2xl font-bold text-slate-900">{pendingSurveys.length}</p>
+            <p className="text-xs text-slate-500 mt-1 line-clamp-2">
+              {nextPendingSurvey ? nextPendingSurvey.nombre : 'No tienes encuestas pendientes'}
+            </p>
+          </div>
           </div>
         </div>
 
@@ -193,6 +209,29 @@ const Dashboard = ({ isAdmin }) => {
               </ul>
             )}
           </div>
+        </div>
+
+        <div className="bg-white border border-slate-200 rounded-2xl p-6">
+          <h2 className="text-sm font-semibold text-slate-500 uppercase mb-4">Anuncios de la empresa</h2>
+
+          {(summary.anuncios || []).length === 0 ? (
+            <p className="text-sm text-slate-500">No hay anuncios publicados para este periodo.</p>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {(summary.anuncios || []).map((announcement) => (
+                <div key={announcement.id} className="border border-slate-200 rounded-xl p-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="font-semibold text-slate-900 text-sm">{announcement.titulo}</p>
+                    <span className="text-[11px] text-slate-500">{formatDate(announcement.fecha)}</span>
+                  </div>
+                  <p className="text-sm text-slate-600">{announcement.descripcion}</p>
+                  <span className="inline-flex mt-3 px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
+                    {announcement.tipo || 'Evento'}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">

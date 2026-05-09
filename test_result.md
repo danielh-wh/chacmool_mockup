@@ -284,7 +284,7 @@ backend:
     file: "/app/backend/routes/clima_laboral.py"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: true
         agent: "main"
@@ -295,6 +295,9 @@ backend:
       - working: true
         agent: "main"
         comment: "Resultados enriquecidos: ahora /api/clima-laboral/surveys/{id}/results incluye question_promedios, areas_atencion y response_matrix (tabla por respuesta con P1..Pn), tanto global como por departamento, para soportar Vista Resultado estilo Excel y filtros cross-tab."
+      - working: true
+        agent: "testing"
+        comment: "✅ VERIFIED (20 tests passed): Clima Laboral APIs fully functional with NEW FIELDS. GET /api/clima-laboral/surveys/{id}/results correctly returns response_matrix (columns with P1..Pn codes, rows with num_encuesta/values/counts, legend with low/high definitions) both globally and per department. Verified question_promedios (3 questions with codigo/promedio/alerta), areas_atencion (empty as no promedio <= 3), response_matrix structure complete. Department 'Desarrollo' has all required fields including response_matrix with 3 columns and 1 row. All meta fields (meta_participacion=80, meta_satisfaccion=75) working correctly."
 
   - task: "API de resumen para dashboard de empleado"
     implemented: true
@@ -302,16 +305,19 @@ backend:
     file: "/app/backend/routes/dashboard.py"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: true
         agent: "main"
         comment: "Nuevo endpoint GET /api/dashboard/employee-summary con payload de periodo (comisiones/bonos, asistencia, retardos/descuentos, actividades, vacaciones, objetivos y alertas) y persistencia en dashboard_employee_summary por usuario/periodo."
+      - working: true
+        agent: "testing"
+        comment: "✅ VERIFIED (10 tests passed): GET /api/dashboard/employee-summary fully functional with NEW FIELD 'anuncios'. All required fields present and correctly structured: comisiones_bonos (comisiones=2640.0, bono=800.0, total=3440.0 MXN), asistencia (dias_trabajados=18/22, retardos=2, descuentos=590.0), actividades (3 activities with id/titulo/fecha/tipo/prioridad), vacaciones (saldo=12 días, usados=4, próximas=1), objetivos (2 objectives with id/titulo/avance), alertas (2 alerts), anuncios (2 announcements/events with id/titulo/descripcion/fecha/tipo). Endpoint correctly handles missing fields with backfill logic. Summary structure complete and working."
 
 metadata:
   created_by: "main_agent"
   version: "1.0"
-  test_sequence: 6
+  test_sequence: 7
   run_ui: true
 
 test_plan:
@@ -337,3 +343,5 @@ agent_communication:
     message: "Aplicado feedback visual de resultados en Clima Laboral: se incorporaron tabs 'Resumen General', 'Por Pregunta', 'Participación' y 'Vista Resultado'; además se agregó selector de departamento y conmutador para ver 'Resumen por departamento' o 'Respuestas por departamento'. Verificado manualmente con screenshots (incluyendo caso real con departamento Desarrollo)."
   - agent: "main"
     message: "Atendido nuevo feedback visual y funcional: Vista Resultado ahora muestra tabla tipo Excel (Num. encuesta x P1..Pn) con leyenda <=3 rojo y >3 verde, fila de promedio por pregunta y filtrado por departamento. El selector de departamento impacta todas las tabs al usar resultado visible filtrado. En Resumen General se agregó bloque de Áreas de Atención y se ajustaron colores de rangos a Rojo/Amarillo/Verde/Azul. Además se rediseñó el dashboard de empleado con métricas de comisiones/bonos, días trabajados, descuentos/retardos, actividades, vacaciones y módulos extra de objetivos/recordatorios."
+  - agent: "testing"
+    message: "✅ BACKEND TESTING COMPLETE - ALL 30 TESTS PASSED. Verified recent changes: 1) GET /api/dashboard/employee-summary now includes NEW FIELD 'anuncios' (list of events/announcements) with correct structure (id, titulo, descripcion, fecha, tipo). Complete summary structure validated: comisiones_bonos, asistencia, actividades, vacaciones, objetivos, alertas, anuncios - all working correctly. 2) GET /api/clima-laboral/surveys/{id}/results verified with response_matrix field present in both global and department results. response_matrix includes columns (P1..Pn codes), rows (num_encuesta, values, low_count, high_count), and legend (low/high definitions). All Clima Laboral endpoints functioning correctly. Backend fully operational."

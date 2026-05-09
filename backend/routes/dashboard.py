@@ -78,6 +78,23 @@ def build_employee_dashboard_summary(current_user: Dict[str, Any]) -> Dict[str, 
         f"Tus retardos del periodo: {retardos}.",
     ]
 
+    anuncios = [
+        {
+            "id": f"news-{user_id}-1",
+            "titulo": "Townhall mensual",
+            "descripcion": "Conexión con Dirección para revisar avances del trimestre.",
+            "fecha": (today + timedelta(days=3)).isoformat(),
+            "tipo": "Evento",
+        },
+        {
+            "id": f"news-{user_id}-2",
+            "titulo": "Semana de bienestar",
+            "descripcion": "Actividades de salud física y mental para todo el equipo.",
+            "fecha": (today + timedelta(days=8)).isoformat(),
+            "tipo": "Anuncio",
+        },
+    ]
+
     return {
         "id": f"dash-{user_id}-{period_key}",
         "user_id": user_id,
@@ -99,6 +116,7 @@ def build_employee_dashboard_summary(current_user: Dict[str, Any]) -> Dict[str, 
         "vacaciones": vacaciones,
         "objetivos": objetivos,
         "alertas": alertas,
+        "anuncios": anuncios,
         "updated_at": datetime.utcnow(),
     }
 
@@ -115,6 +133,20 @@ async def get_employee_dashboard_summary(current_user: dict = Depends(get_curren
     )
 
     if summary:
+        base_summary = build_employee_dashboard_summary(current_user)
+        missing_fields = {}
+
+        for field in ["anuncios", "actividades", "objetivos", "alertas", "vacaciones", "asistencia", "comisiones_bonos"]:
+            if field not in summary:
+                missing_fields[field] = base_summary.get(field)
+                summary[field] = base_summary.get(field)
+
+        if missing_fields:
+            await db.dashboard_employee_summary.update_one(
+                {"user_id": user_id, "period_key": period_key},
+                {"$set": missing_fields},
+            )
+
         return {"ok": True, "summary": summary}
 
     default_summary = build_employee_dashboard_summary(current_user)

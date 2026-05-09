@@ -215,7 +215,6 @@ const ClimaLaboralView = () => {
   const [selectedSurveyId, setSelectedSurveyId] = useState(null);
   const [selectedDepartment, setSelectedDepartment] = useState('Global');
   const [resultsTab, setResultsTab] = useState('resumen-general');
-  const [departmentViewMode, setDepartmentViewMode] = useState('resumen');
   const [resultsBySurvey, setResultsBySurvey] = useState({});
 
   const activeResult = selectedSurveyId ? resultsBySurvey[selectedSurveyId] : null;
@@ -561,7 +560,6 @@ const ClimaLaboralView = () => {
     setSelectedSurveyId(surveyId);
     setSelectedDepartment('Global');
     setResultsTab('resumen-general');
-    setDepartmentViewMode('resumen');
 
     if (resultsBySurvey[surveyId]) return;
 
@@ -1213,7 +1211,7 @@ const ClimaLaboralView = () => {
       <div className="space-y-4">
         <div className="bg-white border border-slate-200 rounded-2xl p-4 flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h3 className="font-semibold text-slate-900">Vista Resultado (equivalente tabla)</h3>
+            <h3 className="font-semibold text-slate-900">VISTA RESULTADO (EQUIVALENTE EXCEL)</h3>
             <p className="text-xs text-slate-500 mt-1">
               Departamento: <span className="font-medium text-slate-700">{selectedDepartment}</span>
             </p>
@@ -1236,7 +1234,7 @@ const ClimaLaboralView = () => {
             <table className="min-w-[880px] w-full">
               <thead className="bg-slate-50 border-b border-slate-200">
                 <tr>
-                  <th className="text-left text-xs uppercase tracking-wider text-slate-500 px-4 py-3 sticky left-0 bg-slate-50">Núm. Encuesta</th>
+                  <th className="text-left text-xs uppercase tracking-wider text-slate-500 px-4 py-3 sticky left-0 bg-slate-50">NUM. ENCUESTA</th>
                   {columns.map((column) => (
                     <th key={column.id} className="text-left px-4 py-3 min-w-[160px]">
                       <p className="text-xs font-semibold text-slate-900">{column.codigo}</p>
@@ -1481,58 +1479,7 @@ const ClimaLaboralView = () => {
           </div>
         )}
 
-        {resultsTab === 'vista-resultado' && (
-          <div className="space-y-4">
-            <div className="bg-white border border-slate-200 rounded-2xl p-4 flex flex-wrap items-center justify-between gap-3">
-              <div>
-                <h3 className="font-semibold text-slate-900">Vista por Departamento</h3>
-                <p className="text-xs text-slate-500 mt-1">Alterna entre resumen por departamento y tabla de respuestas.</p>
-              </div>
-
-              <div className="flex items-center gap-2 bg-slate-100 p-1 rounded-xl">
-                <button
-                  onClick={() => setDepartmentViewMode('resumen')}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-medium ${
-                    departmentViewMode === 'resumen' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600'
-                  }`}
-                >
-                  Resumen por departamento
-                </button>
-                <button
-                  onClick={() => setDepartmentViewMode('respuestas')}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-medium ${
-                    departmentViewMode === 'respuestas' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600'
-                  }`}
-                >
-                  Tabla de respuestas
-                </button>
-              </div>
-            </div>
-
-            {departmentViewMode === 'resumen' && (
-              <div className="space-y-4">
-                {selectedDepartment !== 'Global' && (
-                  <div className="bg-white border border-slate-200 rounded-2xl p-6">
-                    <p className="text-sm text-slate-500 mb-2">Resumen del departamento</p>
-                    <div className="flex items-center gap-3 mb-3">
-                      <span className="text-3xl font-bold" style={{ color: currentHealth.color }}>
-                        {clampPercent(visibleResult.global_index)}%
-                      </span>
-                      <span className="px-2 py-1 rounded-full text-xs font-medium" style={{ backgroundColor: `${currentHealth.color}22`, color: currentHealth.color }}>
-                        {visibleResult.status}
-                      </span>
-                    </div>
-                    <p className="text-sm text-slate-600">Total de respuestas en {selectedDepartment}: {visibleResult.total}</p>
-                  </div>
-                )}
-
-                {renderComparativeTable()}
-              </div>
-            )}
-
-            {departmentViewMode === 'respuestas' && renderResponseMatrixTable()}
-          </div>
-        )}
+        {resultsTab === 'vista-resultado' && renderResponseMatrixTable()}
       </div>
     );
   };

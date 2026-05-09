@@ -656,9 +656,9 @@ def test_employee_dashboard_summary():
             
             log_test("GET Employee Dashboard Summary - Response", True, "ok=true and summary present")
             
-            # Check required summary fields
+            # Check required summary fields (INCLUDING NEW FIELD: anuncios)
             required_fields = ["comisiones_bonos", "asistencia", "actividades", 
-                             "vacaciones", "objetivos", "alertas"]
+                             "vacaciones", "objetivos", "alertas", "anuncios"]
             missing_fields = [field for field in required_fields if field not in summary]
             
             if missing_fields:
@@ -667,7 +667,7 @@ def test_employee_dashboard_summary():
                 return
             
             log_test("GET Employee Dashboard Summary - Structure", True, 
-                    "All required fields present (comisiones_bonos, asistencia, actividades, vacaciones, objetivos, alertas)")
+                    "All required fields present (comisiones_bonos, asistencia, actividades, vacaciones, objetivos, alertas, anuncios)")
             
             # Verify comisiones_bonos structure
             comisiones_bonos = summary.get("comisiones_bonos", {})
@@ -748,6 +748,23 @@ def test_employee_dashboard_summary():
             else:
                 log_test("GET Employee Dashboard Summary - alertas", False, 
                         f"alertas is not a list")
+            
+            # NEW FIELD: Verify anuncios
+            anuncios = summary.get("anuncios", [])
+            if isinstance(anuncios, list) and len(anuncios) > 0:
+                sample_anuncio = anuncios[0]
+                anuncio_required = ["id", "titulo", "descripcion", "fecha", "tipo"]
+                anuncio_missing = [f for f in anuncio_required if f not in sample_anuncio]
+                
+                if not anuncio_missing:
+                    log_test("GET Employee Dashboard Summary - anuncios", True, 
+                            f"Found {len(anuncios)} announcements/events with correct structure (id, titulo, descripcion, fecha, tipo)")
+                else:
+                    log_test("GET Employee Dashboard Summary - anuncios", False, 
+                            f"Anuncio missing fields: {anuncio_missing}")
+            else:
+                log_test("GET Employee Dashboard Summary - anuncios", False, 
+                        f"anuncios is empty or not a list")
                 
         else:
             log_test("GET Employee Dashboard Summary", False, f"Status {response.status_code}: {response.text}")
