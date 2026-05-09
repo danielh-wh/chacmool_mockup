@@ -189,6 +189,21 @@ frontend:
         agent: "main"
         comment: "Vista funcional en /evaluations con plantillas, enlaces públicos y funcionalidades completas"
 
+  - task: "Login muestra error de body consumed y no permite acceso"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/contexts/AuthContext.jsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: false
+        agent: "user"
+        comment: "Usuario reporta en login: 'Response.json: Body has already been consumed'. Ocurre siempre y bloquea acceso."
+      - working: true
+        agent: "main"
+        comment: "Reproducido en /login. Ajustado manejo de respuesta en AuthContext para parseo seguro (evita doble consumo de stream) y mensajes de error robustos. Verificado visualmente: credencial inválida muestra 'Credenciales inválidas' y credencial válida permite entrar."
+
 backend:
   - task: "Backend FastAPI (INACTIVO)"
     implemented: true
@@ -202,23 +217,37 @@ backend:
         agent: "main"
         comment: "Backend existe pero no se utiliza. Usuario solo requiere mockups visuales en esta fase"
 
+  - task: "Datos demo de autenticación en MongoDB"
+    implemented: true
+    working: true
+    file: "/app/backend/seed.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: false
+        agent: "main"
+        comment: "Diagnóstico: colección users vacía (0 registros), login devolvía 401 constante para cuentas demo."
+      - working: true
+        agent: "main"
+        comment: "Ejecutado seed.py para poblar usuarios demo y datos base. Login válido funcionando con maria@empresa.com / maria123."
+
 metadata:
   created_by: "main_agent"
   version: "1.0"
-  test_sequence: 1
+  test_sequence: 2
   run_ui: true
 
 test_plan:
   current_focus:
-    - "Título 'Empleado A' reemplaza 'Matriz 9-Box'"
-    - "Porcentajes dentro de las celdas de la matriz 9-box"
-    - "Vista Perfil+Resultados fusionada"
-    - "UI para asignación de plantillas KPI"
-    - "Contadores de evaluadores"
+    - "Login muestra error de body consumed y no permite acceso"
+    - "Datos demo de autenticación en MongoDB"
   stuck_tasks: []
-  test_all: true
+  test_all: false
   test_priority: "high_first"
 
 agent_communication:
   - agent: "main"
     message: "Implementadas TODAS las correcciones del feedback del usuario (Mensaje 120). Cambios realizados: 1) Título 'Empleado A' reemplaza 'Matriz 9-Box' (NO reemplaza 'Jugador A' en categorías), 2) Porcentajes dentro de celdas 9-box, 3) Vista perfil+resultados fusionada con comparación de categoría calculada vs autoevaluación, 4) UI completa para asignación y evaluación de KPIs con pestañas, 5) Contadores de evaluadores con lógica Admin/Empleado. Frontend compila exitosamente. Screenshots preliminares muestran todo funcionando correctamente. Requiere testing completo de UI."
+  - agent: "main"
+    message: "Bug login reportado por usuario reproducido: 'Response.json: Body has already been consumed'. Root cause detectada: users en MongoDB estaba vacío (401 en /api/auth/login) y manejo de error frontend no robusto ante stream ya leído. Acciones: 1) ejecutado /app/backend/seed.py para cargar credenciales demo, 2) mejorado parseo seguro de respuestas en AuthContext para evitar error de stream consumido y mostrar mensaje de credenciales inválidas. Requiere testing backend auth."

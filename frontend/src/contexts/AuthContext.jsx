@@ -41,6 +41,46 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const parseApiResponse = async (response) => {
+    if (response.bodyUsed) {
+      return null;
+    }
+
+    const rawBody = await response.text();
+    if (!rawBody) {
+      return null;
+    }
+
+    try {
+      return JSON.parse(rawBody);
+    } catch {
+      return { detail: rawBody };
+    }
+  };
+
+  const getErrorMessage = (payload) => {
+    if (!payload) {
+      return 'Credenciales inválidas';
+    }
+
+    if (typeof payload.detail === 'string') {
+      return payload.detail;
+    }
+
+    if (Array.isArray(payload.detail)) {
+      return payload.detail
+        .map((item) => (typeof item?.msg === 'string' ? item.msg : String(item)))
+        .filter(Boolean)
+        .join(' ');
+    }
+
+    if (typeof payload.message === 'string') {
+      return payload.message;
+    }
+
+    return 'Credenciales inválidas';
+  };
+
   const login = async (email, password) => {
     try {
       const response = await fetch(`${API_URL}/api/auth/login`, {
@@ -51,15 +91,19 @@ export const AuthProvider = ({ children }) => {
         body: JSON.stringify({ email, password })
       });
 
+      const payload = await parseApiResponse(response);
+
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.detail || 'Login failed');
+        throw new Error(getErrorMessage(payload));
       }
 
-      const data = await response.json();
-      setToken(data.access_token);
-      setUser(data.user);
-      localStorage.setItem('token', data.access_token);
+      if (!payload?.access_token || !payload?.user) {
+        throw new Error('Respuesta inválida del servidor');
+      }
+
+      setToken(payload.access_token);
+      setUser(payload.user);
+      localStorage.setItem('token', payload.access_token);
       return { success: true };
     } catch (error) {
       return { success: false, error: error.message };
