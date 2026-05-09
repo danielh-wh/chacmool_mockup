@@ -18,6 +18,123 @@ HEALTH_RANGES = [
     {"label": "Poco Saludable", "min": 0, "max": 30.99, "color": "#FF0000"},
 ]
 
+DEFAULT_TEMPLATE_KEY = "encuesta_pdf_v1"
+DEFAULT_TEMPLATE_ID = "template-clima-default-pdf-v1"
+DEFAULT_TEMPLATE_NAME = "Encuesta Clima Organizacional (Predeterminada)"
+DEFAULT_TEMPLATE_DESCRIPTION = "Plantilla base construida desde el PDF proporcionado por el cliente."
+
+DEFAULT_SCALE_OPTIONS = [
+    ("Totalmente en desacuerdo", 1),
+    ("En desacuerdo", 2),
+    ("Ni de acuerdo/Ni en desacuerdo", 3),
+    ("De acuerdo", 4),
+    ("Totalmente de acuerdo", 5),
+]
+
+DEFAULT_TEMPLATE_QUESTIONS = [
+    "¿Sabes lo que se espera de ti en el trabajo? Se refiere que conoces tus objetivos, sabes cómo te evalúan y conoces tus responsabilidades.",
+    "¿Tienes los materiales y el equipo necesario para hacer el trabajo de la manera correcta?",
+    "En el trabajo, ¿tienes la oportunidad de hacer lo mejor posible cada día? Se refiere a que tienes la oportunidad de hacer actividades donde tienes habilidad y si estás satisfecho con tu puesto.",
+    "En los últimos 7 días ¿Has recibido algún reconocimiento por hacer el trabajo indicado?",
+    "Tu supervisor o a quien le reportas, o alguien en el trabajo ¿parece preocuparse de ti como persona?",
+    "¿Hay alguien en el trabajo que aliente tu desarrollo?",
+    "En el trabajo, ¿tus opiniones cuentan?",
+    "La misión o propósito de la empresa, ¿hace que sientas tu trabajo importante?",
+    "¿Tus compañeros de trabajo están comprometidos en hacer un trabajo de calidad?",
+    "¿Tienes buenas relaciones con tus compañeros de trabajo?",
+    "En los últimos seis meses. ¿Alguien en el trabajo ha hablado contigo acerca de tu progreso?",
+    "En el último año, ¿has tenido oportunidades de aprender y crecer en el trabajo?",
+]
+
+
+def build_default_template_doc() -> Dict[str, Any]:
+    now = datetime.utcnow()
+
+    questions = []
+    for index, question_text in enumerate(DEFAULT_TEMPLATE_QUESTIONS, start=1):
+        questions.append(
+            {
+                "id": f"default-q{index}",
+                "pregunta": question_text,
+                "tipo": "seleccion",
+                "orden": index,
+                "opciones": [
+                    {
+                        "id": f"default-q{index}-o{value}",
+                        "titulo": label,
+                        "valor": value,
+                        "orden": value,
+                    }
+                    for label, value in DEFAULT_SCALE_OPTIONS
+                ],
+            }
+        )
+
+    return {
+        "id": DEFAULT_TEMPLATE_ID,
+        "default_key": DEFAULT_TEMPLATE_KEY,
+        "is_default": True,
+        "nombre": DEFAULT_TEMPLATE_NAME,
+        "descripcion": DEFAULT_TEMPLATE_DESCRIPTION,
+        "preguntas": questions,
+        "created_at": now,
+        "updated_at": now,
+    }
+
+
+async def ensure_single_default_template() -> None:
+    default_template = build_default_template_doc()
+
+    existing_default = await db.clima_templates.find_one(
+        {
+            "$or": [
+                {"default_key": DEFAULT_TEMPLATE_KEY},
+                {"id": DEFAULT_TEMPLATE_ID},
+            ]
+        },
+        {"_id": 0},
+    )
+
+    if existing_default and existing_default.get("created_at"):
+        default_template["created_at"] = existing_default.get("created_at")
+
+    await db.clima_templates.update_one(
+        {
+            "$or": [
+                {"default_key": DEFAULT_TEMPLATE_KEY},
+                {"id": DEFAULT_TEMPLATE_ID},
+            ]
+        },
+        {"$set": default_template},
+        upsert=True,
+    )
+
+    await db.clima_templates.update_many(
+        {
+            "is_default": True,
+            "id": {"$ne": DEFAULT_TEMPLATE_ID},
+        },
+        {
+            "$set": {
+                "is_default": False,
+            }
+        },
+    )
+
+    await db.clima_templates.update_many(
+        {
+            "id": DEFAULT_TEMPLATE_ID,
+        },
+        {
+            "$set": {
+                "default_key": DEFAULT_TEMPLATE_KEY,
+                "is_default": True,
+            }
+        },
+    )
+
+
+
 
 def get_health_status(score: float) -> Dict[str, Any]:
     for item in HEALTH_RANGES:
@@ -512,7 +629,16 @@ async def get_survey_results(survey_id: str, current_user: dict = Depends(get_cu
 
 @router.get("/templates")
 async def get_templates(current_user: dict = Depends(get_current_user)):
-    templates = await db.clima_templates.find({}, {"_id": 0}).sort("created_at", 1).to_list(500)
+    await ensure_single_default_template()
+    templates = await db.clima_templates.find({}, {"_id": 0}).to_list(500)
+
+    templates_sorted = sorted(
+        templates,
+        key=lambda template: (
+            0 if template.get("is_default") else 1,
+            template.get("created_at") or datetime.min,
+        ),
+    )
 
     compact_templates = [
         {
@@ -520,8 +646,10 @@ async def get_templates(current_user: dict = Depends(get_current_user)):
             "nombre": template.get("nombre"),
             "descripcion": template.get("descripcion"),
             "created_at": template.get("created_at"),
+            "is_default": bool(template.get("is_default", False)),
+            "default_key": template.get("default_key"),
         }
-        for template in templates
+        for template in templates_sorted
     ]
 
     return {"ok": True, "plantillas": compact_templates}
@@ -551,10 +679,13 @@ async def create_template(payload: ClimaTemplateCreate, current_user: dict = Dep
 
     template_doc = {
         "id": str(uuid4()),
+        "default_key": None,
+        "is_default": False,
         "nombre": payload.nombre.strip(),
         "descripcion": (payload.descripcion or "").strip(),
         "preguntas": normalized_questions,
         "created_at": datetime.utcnow(),
+        "updated_at": datetime.utcnow(),
     }
 
     await db.clima_templates.insert_one(template_doc)
@@ -569,6 +700,13 @@ async def create_template(payload: ClimaTemplateCreate, current_user: dict = Dep
 async def delete_template(template_id: str, current_user: dict = Depends(get_current_user)):
     if current_user.get("role") != "admin":
         raise HTTPException(status_code=403, detail="Solo administradores")
+
+    template = await db.clima_templates.find_one({"id": template_id}, {"_id": 0, "is_default": 1})
+    if not template:
+        raise HTTPException(status_code=404, detail="Plantilla no encontrada")
+
+    if template.get("is_default"):
+        raise HTTPException(status_code=400, detail="No puedes eliminar la plantilla predeterminada")
 
     result = await db.clima_templates.delete_one({"id": template_id})
     if result.deleted_count == 0:

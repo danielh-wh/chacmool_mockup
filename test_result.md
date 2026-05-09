@@ -304,6 +304,9 @@ backend:
       - working: true
         agent: "testing"
         comment: "✅ VERIFIED (20 tests passed): Clima Laboral APIs fully functional with NEW FIELDS. GET /api/clima-laboral/surveys/{id}/results correctly returns response_matrix (columns with P1..Pn codes, rows with num_encuesta/values/counts, legend with low/high definitions) both globally and per department. Verified question_promedios (3 questions with codigo/promedio/alerta), areas_atencion (empty as no promedio <= 3), response_matrix structure complete. Department 'Desarrollo' has all required fields including response_matrix with 3 columns and 1 row. All meta fields (meta_participacion=80, meta_satisfaccion=75) working correctly."
+      - working: true
+        agent: "testing"
+        comment: "✅ ALL TESTS PASSED (36/36): Verified recent changes for default template functionality. 1) GET /api/clima-laboral/templates correctly returns default template with is_default=true, default_key='encuesta_pdf_v1', 12 questions, and scale 1-5. Only ONE template has is_default=true (verified uniqueness). 2) POST /api/clima-laboral/templates still works correctly for custom templates (is_default=false). 3) DELETE /api/clima-laboral/templates/{id} correctly rejects (400 error) deletion of default template with message 'No puedes eliminar la plantilla predeterminada'. 4) POST /api/clima-laboral/surveys with default template questions works correctly (created survey with 12 questions). All Clima Laboral endpoints fully functional."
 
   - task: "API de resumen para dashboard de empleado"
     implemented: true
@@ -323,15 +326,15 @@ backend:
 metadata:
   created_by: "main_agent"
   version: "1.0"
-  test_sequence: 7
+  test_sequence: 9
   run_ui: true
 
 test_plan:
   current_focus:
+    - "Guardar plantilla y lanzar encuesta en Clima Laboral"
+    - "Plantilla predeterminada única basada en PDF"
     - "APIs de Clima Laboral con metas, plantillas y resultados"
     - "API de resumen para dashboard de empleado"
-    - "Sección Clima Laboral integrada en sidebar y flujo SPA"
-    - "Dashboard del empleado con métricas operativas del periodo"
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
@@ -353,3 +356,7 @@ agent_communication:
     message: "✅ BACKEND TESTING COMPLETE - ALL 30 TESTS PASSED. Verified recent changes: 1) GET /api/dashboard/employee-summary now includes NEW FIELD 'anuncios' (list of events/announcements) with correct structure (id, titulo, descripcion, fecha, tipo). Complete summary structure validated: comisiones_bonos, asistencia, actividades, vacaciones, objetivos, alertas, anuncios - all working correctly. 2) GET /api/clima-laboral/surveys/{id}/results verified with response_matrix field present in both global and department results. response_matrix includes columns (P1..Pn codes), rows (num_encuesta, values, low_count, high_count), and legend (low/high definitions). All Clima Laboral endpoints functioning correctly. Backend fully operational."
   - agent: "testing"
     message: "✅ FRONTEND UI TESTING COMPLETE - ALL 3 TEST CASES PASSED. Tested with credentials maria@empresa.com/maria123 (admin) and juan@empresa.com/juan123 (employee). Results: 1) Admin Clima Laboral Vista Resultado: Excel-style table working perfectly with NUM. ENCUESTA header, P1-P3 columns showing full question text, Promedio row with values (4.0, 5.0, 4.0), and legend displaying ≤3 (red) and >3 (green). 2) Department selector working across ALL tabs: Resumen General updates satisfaction metrics, Por Pregunta updates question statistics, Vista Resultado updates department label and filters table data correctly (tested Global and Desarrollo departments). 3) Employee Dashboard: All 6 metrics present and working (Comisiones y bonos: $3,440, Días trabajados: 18/22, Descuentos y retardos: 2 retardos/$590, Próximas actividades: 3, Vacaciones: 12 días/4 usados, Encuestas pendientes: 1). Anuncios de la empresa section displaying 2 announcements correctly. Fixed 1 minor JSX syntax error in Dashboard.jsx (extra closing div tag) that was blocking compilation. All user feedback requirements fully implemented and verified."
+  - agent: "main"
+    message: "Nuevo requerimiento sobre plantillas: se corrigió flujo para guardar plantilla sin bloquear por fecha_fin (validación separada para plantilla vs encuesta), se definió plantilla predeterminada única desde PDF de encuesta de clima (12 preguntas + escala Likert 1-5), se protegió la plantilla predeterminada contra eliminación y se prioriza en la carga automática al crear encuestas. Pendiente validación backend final del flujo de plantillas."
+  - agent: "testing"
+    message: "✅ BACKEND TESTING COMPLETE - ALL 36 TESTS PASSED. Verified default template functionality: 1) GET /api/clima-laboral/templates returns default template with is_default=true, default_key='encuesta_pdf_v1', exactly 12 questions, and scale 1-5. Verified only ONE template has is_default=true (uniqueness constraint working). 2) POST /api/clima-laboral/templates continues to work correctly for custom templates (is_default=false). 3) DELETE /api/clima-laboral/templates/{id} correctly rejects deletion of default template with 400 error and message 'No puedes eliminar la plantilla predeterminada'. 4) POST /api/clima-laboral/surveys with default template questions works correctly (successfully created survey with all 12 questions from default template). All Clima Laboral endpoints fully functional. Backend ready for production."

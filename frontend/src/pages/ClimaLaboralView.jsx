@@ -40,15 +40,21 @@ const createEmptyQuestion = () => ({
   opciones: [{ id: `o-${Date.now()}-${Math.random()}`, titulo: '', valor: 3 }],
 });
 
-const baseSurveyDraft = {
+const getDefaultEndDate = () => {
+  const nextDate = new Date();
+  nextDate.setDate(nextDate.getDate() + 14);
+  return nextDate.toISOString().split('T')[0];
+};
+
+const createBaseSurveyDraft = () => ({
   nombre: '',
   descripcion: '',
-  fecha_fin: '',
+  fecha_fin: getDefaultEndDate(),
   es_anonima: true,
   meta_participacion: 0,
   meta_satisfaccion: 80,
   preguntas: [createEmptyQuestion()],
-};
+});
 
 const GaugeCard = ({ globalIndex, metaSatisfaccion }) => {
   const safeValue = clampPercent(globalIndex);
@@ -206,7 +212,7 @@ const ClimaLaboralView = () => {
   const [pendingSurveys, setPendingSurveys] = useState([]);
   const [templates, setTemplates] = useState([]);
 
-  const [surveyDraft, setSurveyDraft] = useState(baseSurveyDraft);
+  const [surveyDraft, setSurveyDraft] = useState(createBaseSurveyDraft());
   const [manualTemplateId, setManualTemplateId] = useState('');
 
   const [selectedSurvey, setSelectedSurvey] = useState(null);
@@ -299,7 +305,7 @@ const ClimaLaboralView = () => {
   const startCreatingSurvey = async () => {
     setCurrentView('create');
     setManualTemplateId('');
-    setSurveyDraft(baseSurveyDraft);
+    setSurveyDraft(createBaseSurveyDraft());
 
     try {
       const templateData = await climateAPI.getTemplates();
@@ -310,7 +316,7 @@ const ClimaLaboralView = () => {
         await applyTemplateToDraft(availableTemplates[0].id);
       } else {
         setSurveyDraft({
-          ...baseSurveyDraft,
+          ...createBaseSurveyDraft(),
           preguntas: [createEmptyQuestion()],
         });
       }
@@ -406,14 +412,9 @@ const ClimaLaboralView = () => {
     }));
   };
 
-  const validateDraft = () => {
+  const validateCommonDraft = () => {
     if (!surveyDraft.nombre.trim()) {
-      toast.error('El título de la encuesta es obligatorio');
-      return false;
-    }
-
-    if (!surveyDraft.fecha_fin) {
-      toast.error('La fecha de fin es obligatoria');
+      toast.error('El título de la encuesta/plantilla es obligatorio');
       return false;
     }
 
@@ -440,6 +441,23 @@ const ClimaLaboralView = () => {
     return true;
   };
 
+  const validateSurveyDraft = () => {
+    if (!validateCommonDraft()) {
+      return false;
+    }
+
+    if (!surveyDraft.fecha_fin) {
+      toast.error('La fecha de fin es obligatoria para lanzar una encuesta');
+      return false;
+    }
+
+    return true;
+  };
+
+  const validateTemplateDraft = () => {
+    return validateCommonDraft();
+  };
+
   const draftPayload = useMemo(() => {
     return {
       nombre: surveyDraft.nombre,
@@ -463,14 +481,14 @@ const ClimaLaboralView = () => {
   }, [surveyDraft]);
 
   const handleCreateSurvey = async () => {
-    if (!validateDraft()) return;
+    if (!validateSurveyDraft()) return;
 
     try {
       setSaving(true);
       await climateAPI.createSurvey(draftPayload);
       toast.success('Encuesta lanzada correctamente');
       setCurrentView('dashboard');
-      setSurveyDraft(baseSurveyDraft);
+      setSurveyDraft(createBaseSurveyDraft());
       await loadDashboardData();
     } catch (error) {
       toast.error(error.message || 'No se pudo crear la encuesta');
@@ -480,7 +498,7 @@ const ClimaLaboralView = () => {
   };
 
   const handleSaveTemplate = async () => {
-    if (!validateDraft()) return;
+    if (!validateTemplateDraft()) return;
 
     try {
       setSaving(true);
@@ -777,7 +795,9 @@ const ClimaLaboralView = () => {
                 >
                   <option value="">Selecciona plantilla</option>
                   {templates.map((template) => (
-                    <option key={template.id} value={template.id}>{template.nombre}</option>
+                    <option key={template.id} value={template.id}>
+                      {template.nombre}{template.is_default ? ' · Predeterminada' : ''}
+                    </option>
                   ))}
                 </select>
                 <button
@@ -1516,6 +1536,7 @@ const ClimaLaboralView = () => {
                 <tr>
                   <th className="px-6 py-4">Nombre</th>
                   <th className="px-6 py-4">Descripción</th>
+                  <th className="px-6 py-4">Tipo</th>
                   <th className="px-6 py-4">Acción</th>
                 </tr>
               </thead>
@@ -1525,11 +1546,23 @@ const ClimaLaboralView = () => {
                     <td className="px-6 py-4 font-medium text-slate-900">{template.nombre}</td>
                     <td className="px-6 py-4 text-slate-600">{template.descripcion || 'Sin descripción'}</td>
                     <td className="px-6 py-4">
+                      {template.is_default ? (
+                        <span className="inline-flex px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
+                          Predeterminada
+                        </span>
+                      ) : (
+                        <span className="inline-flex px-2 py-1 rounded-full text-xs font-medium bg-slate-100 text-slate-700">
+                          Personalizada
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-6 py-4">
                       <button
                         onClick={() => handleDeleteTemplate(template.id)}
-                        className="px-3 py-1.5 rounded-lg text-xs font-medium border border-red-200 text-red-600 hover:bg-red-50"
+                        disabled={template.is_default}
+                        className="px-3 py-1.5 rounded-lg text-xs font-medium border border-red-200 text-red-600 hover:bg-red-50 disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                        Eliminar
+                        {template.is_default ? 'Protegida' : 'Eliminar'}
                       </button>
                     </td>
                   </tr>

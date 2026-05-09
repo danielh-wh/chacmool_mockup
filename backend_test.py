@@ -21,6 +21,8 @@ admin_token: Optional[str] = None
 employee_token: Optional[str] = None
 created_template_id: Optional[str] = None
 created_survey_id: Optional[str] = None
+default_template_id: Optional[str] = None
+default_template_data: Optional[Dict[str, Any]] = None
 
 # Test results tracking
 test_results = {
@@ -143,6 +145,8 @@ def test_auth_me():
 
 def test_get_templates():
     """Test GET /api/clima-laboral/templates"""
+    global default_template_id, default_template_data
+    
     if not admin_token:
         log_test("GET Templates", False, "No admin token available")
         return
@@ -163,6 +167,59 @@ def test_get_templates():
             if "ok" in data and "plantillas" in data:
                 templates = data["plantillas"]
                 log_test("GET Templates", True, f"Retrieved {len(templates)} templates")
+                
+                # Find default template
+                default_templates = [t for t in templates if t.get("is_default")]
+                
+                if len(default_templates) == 1:
+                    log_test("GET Templates - Single Default", True, "Exactly one template has is_default=true")
+                    default_template_id = default_templates[0].get("id")
+                elif len(default_templates) == 0:
+                    log_test("GET Templates - Single Default", False, "No default template found")
+                else:
+                    log_test("GET Templates - Single Default", False, f"Multiple default templates found: {len(default_templates)}")
+                
+                # Verify default template properties
+                if default_templates:
+                    default_template = default_templates[0]
+                    default_key = default_template.get("default_key")
+                    
+                    if default_key == "encuesta_pdf_v1":
+                        log_test("GET Templates - Default Key", True, f"default_key is 'encuesta_pdf_v1'")
+                    else:
+                        log_test("GET Templates - Default Key", False, f"default_key is '{default_key}', expected 'encuesta_pdf_v1'")
+                    
+                    # Get full template details to check questions
+                    template_id = default_template.get("id")
+                    if template_id:
+                        detail_response = requests.get(
+                            f"{BASE_URL}/clima-laboral/templates/{template_id}",
+                            headers={"Authorization": f"Bearer {admin_token}"},
+                            timeout=10
+                        )
+                        
+                        if detail_response.status_code == 200:
+                            detail_data = detail_response.json()
+                            if "plantilla" in detail_data:
+                                default_template_data = detail_data["plantilla"]
+                                preguntas = default_template_data.get("preguntas", [])
+                                
+                                # Check number of questions
+                                if len(preguntas) == 12:
+                                    log_test("GET Templates - Default Questions Count", True, "Default template has 12 questions")
+                                else:
+                                    log_test("GET Templates - Default Questions Count", False, f"Default template has {len(preguntas)} questions, expected 12")
+                                
+                                # Check scale (1-5) in first question
+                                if preguntas:
+                                    first_question = preguntas[0]
+                                    opciones = first_question.get("opciones", [])
+                                    valores = [opt.get("valor") for opt in opciones]
+                                    
+                                    if valores == [1, 2, 3, 4, 5]:
+                                        log_test("GET Templates - Default Scale", True, "Default template uses scale 1-5")
+                                    else:
+                                        log_test("GET Templates - Default Scale", False, f"Scale values are {valores}, expected [1, 2, 3, 4, 5]")
             else:
                 log_test("GET Templates", False, f"Unexpected response format: {data}")
         else:
@@ -223,13 +280,48 @@ def test_create_template():
             data = response.json()
             if "ok" in data and "plantilla" in data:
                 created_template_id = data["plantilla"].get("id")
-                log_test("POST Template", True, f"Created template ID: {created_template_id}")
+                is_default = data["plantilla"].get("is_default", False)
+                
+                if not is_default:
+                    log_test("POST Template - Custom Template", True, f"Created custom template ID: {created_template_id} (is_default=false)")
+                else:
+                    log_test("POST Template - Custom Template", False, f"Custom template incorrectly marked as default")
             else:
                 log_test("POST Template", False, f"Unexpected response format: {data}")
         else:
             log_test("POST Template", False, f"Status {response.status_code}: {response.text}")
     except Exception as e:
         log_test("POST Template", False, f"Exception: {str(e)}")
+
+
+def test_delete_default_template():
+    """Test DELETE /api/clima-laboral/templates/{id} - should reject deleting default template"""
+    if not admin_token:
+        log_test("DELETE Default Template (should fail)", False, "No admin token available")
+        return
+    
+    if not default_template_id:
+        log_test("DELETE Default Template (should fail)", False, "No default template ID available")
+        return
+    
+    try:
+        response = requests.delete(
+            f"{BASE_URL}/clima-laboral/templates/{default_template_id}",
+            headers={"Authorization": f"Bearer {admin_token}"},
+            timeout=10
+        )
+        
+        if response.status_code == 400:
+            data = response.json()
+            detail = data.get("detail", "")
+            if "predeterminada" in detail.lower() or "default" in detail.lower():
+                log_test("DELETE Default Template Protection", True, "Correctly rejected deletion of default template with 400 error")
+            else:
+                log_test("DELETE Default Template Protection", True, f"Rejected with 400 (detail: {detail})")
+        else:
+            log_test("DELETE Default Template Protection", False, f"Expected 400, got {response.status_code}: {response.text}")
+    except Exception as e:
+        log_test("DELETE Default Template Protection", False, f"Exception: {str(e)}")
 
 
 def test_create_survey():
@@ -324,6 +416,61 @@ def test_create_survey():
             log_test("POST Survey with Metas", False, f"Status {response.status_code}: {response.text}")
     except Exception as e:
         log_test("POST Survey with Metas", False, f"Exception: {str(e)}")
+
+
+def test_create_survey_with_default_template():
+    """Test POST /api/clima-laboral/surveys using default template questions"""
+    if not admin_token:
+        log_test("POST Survey with Default Template", False, "No admin token available")
+        return
+    
+    if not default_template_data:
+        log_test("POST Survey with Default Template", False, "No default template data available")
+        return
+    
+    # Calculate fecha_fin (30 days from now)
+    fecha_fin = (date.today() + timedelta(days=30)).isoformat()
+    
+    # Use questions from default template
+    default_questions = default_template_data.get("preguntas", [])
+    
+    survey_data = {
+        "nombre": "Encuesta con Plantilla Predeterminada - Test",
+        "descripcion": "Encuesta usando las 12 preguntas de la plantilla predeterminada",
+        "fecha_fin": fecha_fin,
+        "es_anonima": True,
+        "meta_participacion": 85,
+        "meta_satisfaccion": 80,
+        "preguntas": default_questions
+    }
+    
+    try:
+        response = requests.post(
+            f"{BASE_URL}/clima-laboral/surveys",
+            headers={"Authorization": f"Bearer {admin_token}"},
+            json=survey_data,
+            timeout=10
+        )
+        
+        if response.status_code == 200:
+            data = response.json()
+            if "ok" in data and "survey" in data:
+                survey = data["survey"]
+                survey_id = survey.get("id")
+                preguntas = survey.get("preguntas", [])
+                
+                if len(preguntas) == 12:
+                    log_test("POST Survey with Default Template", True, 
+                            f"Created survey with default template (12 questions), ID: {survey_id}")
+                else:
+                    log_test("POST Survey with Default Template", False, 
+                            f"Survey has {len(preguntas)} questions, expected 12")
+            else:
+                log_test("POST Survey with Default Template", False, f"Unexpected response format: {data}")
+        else:
+            log_test("POST Survey with Default Template", False, f"Status {response.status_code}: {response.text}")
+    except Exception as e:
+        log_test("POST Survey with Default Template", False, f"Exception: {str(e)}")
 
 
 def test_get_surveys():
@@ -813,7 +960,9 @@ def main():
     test_auth_me()
     test_get_templates()
     test_create_template()
+    test_delete_default_template()
     test_create_survey()
+    test_create_survey_with_default_template()
     test_get_surveys()
     test_respond_survey()
     test_get_survey_results()
