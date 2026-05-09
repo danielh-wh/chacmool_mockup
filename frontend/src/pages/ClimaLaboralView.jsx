@@ -214,13 +214,15 @@ const ClimaLaboralView = () => {
 
   const [selectedSurveyId, setSelectedSurveyId] = useState(null);
   const [selectedDepartment, setSelectedDepartment] = useState('Global');
+  const [resultsTab, setResultsTab] = useState('resumen-general');
+  const [departmentViewMode, setDepartmentViewMode] = useState('resumen');
   const [resultsBySurvey, setResultsBySurvey] = useState({});
 
   const activeResult = selectedSurveyId ? resultsBySurvey[selectedSurveyId] : null;
 
   const visibleResult = useMemo(() => {
     if (!activeResult) return null;
-    if (selectedDepartment === 'Global' || selectedDepartment === 'Comparative') return activeResult;
+    if (selectedDepartment === 'Global') return activeResult;
 
     const dept = activeResult.por_departamento?.[selectedDepartment];
     if (!dept) return activeResult;
@@ -555,6 +557,8 @@ const ClimaLaboralView = () => {
     setCurrentView('results');
     setSelectedSurveyId(surveyId);
     setSelectedDepartment('Global');
+    setResultsTab('resumen-general');
+    setDepartmentViewMode('resumen');
 
     if (resultsBySurvey[surveyId]) return;
 
@@ -1161,7 +1165,14 @@ const ClimaLaboralView = () => {
 
   const renderResults = () => {
     const survey = surveys.find((item) => item.id === selectedSurveyId);
-    const departmentOptions = ['Global', 'Comparative', ...Object.keys(activeResult?.por_departamento || {})];
+    const departments = Object.keys(activeResult?.por_departamento || {});
+    const departmentOptions = ['Global', ...departments];
+    const resultsTabs = [
+      { id: 'resumen-general', label: 'Resumen General' },
+      { id: 'por-pregunta', label: 'Por Pregunta' },
+      { id: 'participacion', label: 'Participación' },
+      { id: 'vista-resultado', label: 'Vista Resultado' },
+    ];
 
     if (!activeResult || !visibleResult) {
       return (
@@ -1170,6 +1181,8 @@ const ClimaLaboralView = () => {
         </div>
       );
     }
+
+    const currentHealth = getHealthLevel(visibleResult.global_index || 0);
 
     return (
       <div className="animate-fade-in space-y-6">
@@ -1201,59 +1214,178 @@ const ClimaLaboralView = () => {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
-          <GaugeCard globalIndex={visibleResult.global_index} metaSatisfaccion={activeResult.meta_satisfaccion} />
-          <ProgressVsMetaCard globalIndex={visibleResult.global_index} metaSatisfaccion={activeResult.meta_satisfaccion} />
-          <ParticipationCard total={visibleResult.total} metaParticipacion={activeResult.meta_participacion} />
+        <div className="bg-slate-100 border border-slate-200 rounded-2xl p-2 flex flex-wrap gap-2">
+          {resultsTabs.map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setResultsTab(tab.id)}
+              className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${
+                resultsTab === tab.id
+                  ? 'bg-white text-slate-900 shadow-sm'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
         </div>
 
-        <StandardsChevron globalIndex={visibleResult.global_index} />
+        {resultsTab === 'resumen-general' && (
+          <>
+            <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
+              <GaugeCard globalIndex={visibleResult.global_index} metaSatisfaccion={activeResult.meta_satisfaccion} />
+              <ProgressVsMetaCard globalIndex={visibleResult.global_index} metaSatisfaccion={activeResult.meta_satisfaccion} />
+              <ParticipationCard total={visibleResult.total} metaParticipacion={activeResult.meta_participacion} />
+            </div>
 
-        {selectedDepartment === 'Comparative' ? renderComparativeTable() : renderQuestionStats()}
+            <StandardsChevron globalIndex={visibleResult.global_index} />
+          </>
+        )}
 
-        {!activeResult.es_anonima && selectedDepartment === 'Global' && (
-          <div className="bg-white border border-slate-200 rounded-2xl p-6 overflow-x-auto">
-            <h3 className="font-semibold text-slate-900 mb-4">Rendimiento por colaborador</h3>
+        {resultsTab === 'por-pregunta' && renderQuestionStats()}
 
-            {(activeResult.participantes || []).length === 0 ? (
-              <p className="text-sm text-slate-500">Sin datos de colaboradores para esta encuesta.</p>
-            ) : (
-              <table className="w-full min-w-[620px]">
-                <thead>
-                  <tr className="border-b border-slate-200 text-left text-xs uppercase tracking-wider text-slate-500">
-                    <th className="py-3">Nombre</th>
-                    <th className="py-3">% Satisfacción</th>
-                    <th className="py-3">Estado</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {activeResult.participantes.map((participant) => (
-                    <tr key={participant.empleado_id} className="border-b border-slate-100">
-                      <td className="py-3 font-medium text-slate-900">{participant.nombre}</td>
-                      <td className="py-3">
-                        <div className="flex items-center gap-3">
-                          <div className="w-28 h-2 bg-slate-100 rounded-full overflow-hidden">
-                            <div
-                              className={`h-full rounded-full ${participant.alerta_colaborador ? 'bg-red-500' : 'bg-green-500'}`}
-                              style={{ width: `${clampPercent(participant.score)}%` }}
-                            />
-                          </div>
-                          <span className="text-sm font-semibold">{clampPercent(participant.score)}%</span>
-                        </div>
-                      </td>
-                      <td className="py-3">
-                        <span
-                          className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${
-                            participant.alerta_colaborador ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'
-                          }`}
-                        >
-                          {participant.alerta_colaborador ? 'Crítico' : 'Estable'}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+        {resultsTab === 'participacion' && (
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+              <ParticipationCard total={visibleResult.total} metaParticipacion={activeResult.meta_participacion} />
+
+              <div className="bg-white border border-slate-200 rounded-2xl p-6 lg:col-span-2">
+                <p className="text-xs uppercase tracking-wider text-slate-500 font-semibold mb-3">Estado actual</p>
+                <div className="flex items-center gap-3 mb-3">
+                  <span className="text-3xl font-bold" style={{ color: currentHealth.color }}>
+                    {clampPercent(visibleResult.global_index)}%
+                  </span>
+                  <span className="px-2 py-1 rounded-full text-xs font-medium" style={{ backgroundColor: `${currentHealth.color}22`, color: currentHealth.color }}>
+                    {visibleResult.status}
+                  </span>
+                </div>
+                <p className="text-sm text-slate-600">
+                  Departamento seleccionado: <span className="font-medium text-slate-900">{selectedDepartment}</span>
+                </p>
+              </div>
+            </div>
+
+            {!activeResult.es_anonima && selectedDepartment === 'Global' && (
+              <div className="bg-white border border-slate-200 rounded-2xl p-6 overflow-x-auto">
+                <h3 className="font-semibold text-slate-900 mb-4">Rendimiento por colaborador</h3>
+
+                {(activeResult.participantes || []).length === 0 ? (
+                  <p className="text-sm text-slate-500">Sin datos de colaboradores para esta encuesta.</p>
+                ) : (
+                  <table className="w-full min-w-[620px]">
+                    <thead>
+                      <tr className="border-b border-slate-200 text-left text-xs uppercase tracking-wider text-slate-500">
+                        <th className="py-3">Nombre</th>
+                        <th className="py-3">% Satisfacción</th>
+                        <th className="py-3">Estado</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {activeResult.participantes.map((participant) => (
+                        <tr key={participant.empleado_id} className="border-b border-slate-100">
+                          <td className="py-3 font-medium text-slate-900">{participant.nombre}</td>
+                          <td className="py-3">
+                            <div className="flex items-center gap-3">
+                              <div className="w-28 h-2 bg-slate-100 rounded-full overflow-hidden">
+                                <div
+                                  className={`h-full rounded-full ${participant.alerta_colaborador ? 'bg-red-500' : 'bg-green-500'}`}
+                                  style={{ width: `${clampPercent(participant.score)}%` }}
+                                />
+                              </div>
+                              <span className="text-sm font-semibold">{clampPercent(participant.score)}%</span>
+                            </div>
+                          </td>
+                          <td className="py-3">
+                            <span
+                              className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${
+                                participant.alerta_colaborador ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'
+                              }`}
+                            >
+                              {participant.alerta_colaborador ? 'Crítico' : 'Estable'}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+              </div>
+            )}
+
+            {activeResult.es_anonima && (
+              <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 text-sm text-amber-700">
+                Esta encuesta es anónima; no se muestran colaboradores individuales.
+              </div>
+            )}
+          </div>
+        )}
+
+        {resultsTab === 'vista-resultado' && (
+          <div className="space-y-4">
+            <div className="bg-white border border-slate-200 rounded-2xl p-4 flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <h3 className="font-semibold text-slate-900">Vista por Departamento</h3>
+                <p className="text-xs text-slate-500 mt-1">Alterna entre resumen y respuestas por departamento.</p>
+              </div>
+
+              <div className="flex items-center gap-2 bg-slate-100 p-1 rounded-xl">
+                <button
+                  onClick={() => setDepartmentViewMode('resumen')}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-medium ${
+                    departmentViewMode === 'resumen' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600'
+                  }`}
+                >
+                  Resumen por departamento
+                </button>
+                <button
+                  onClick={() => setDepartmentViewMode('respuestas')}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-medium ${
+                    departmentViewMode === 'respuestas' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600'
+                  }`}
+                >
+                  Respuestas por departamento
+                </button>
+              </div>
+            </div>
+
+            {departments.length === 0 ? (
+              <div className="bg-white border border-slate-200 rounded-2xl p-6 text-center text-slate-500">
+                No hay datos por departamento disponibles aún.
+              </div>
+            ) : null}
+
+            {departments.length > 0 && departmentViewMode === 'resumen' && (
+              selectedDepartment === 'Global' ? (
+                renderComparativeTable()
+              ) : (
+                <div className="space-y-4">
+                  <div className="bg-white border border-slate-200 rounded-2xl p-6">
+                    <p className="text-sm text-slate-500 mb-2">Resumen del departamento</p>
+                    <div className="flex items-center gap-3 mb-3">
+                      <span className="text-3xl font-bold" style={{ color: currentHealth.color }}>
+                        {clampPercent(visibleResult.global_index)}%
+                      </span>
+                      <span className="px-2 py-1 rounded-full text-xs font-medium" style={{ backgroundColor: `${currentHealth.color}22`, color: currentHealth.color }}>
+                        {visibleResult.status}
+                      </span>
+                    </div>
+                    <p className="text-sm text-slate-600">Total de respuestas en {selectedDepartment}: {visibleResult.total}</p>
+                  </div>
+
+                  {renderComparativeTable()}
+                </div>
+              )
+            )}
+
+            {departments.length > 0 && departmentViewMode === 'respuestas' && (
+              selectedDepartment === 'Global' ? (
+                <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 text-sm text-amber-700 flex items-center gap-2">
+                  <AlertTriangle className="w-4 h-4" />
+                  Selecciona un departamento específico para ver sus respuestas.
+                </div>
+              ) : (
+                renderQuestionStats()
+              )
             )}
           </div>
         )}

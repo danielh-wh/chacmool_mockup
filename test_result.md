@@ -218,6 +218,12 @@ frontend:
       - working: true
         agent: "main"
         comment: "Nueva sección /clima-laboral con vistas Dashboard, Crear Encuesta (incluye metas y auto-carga de primera plantilla), Responder, Resultados (gauge/meta/participación/estándares/análisis) y Biblioteca de Plantillas. Estilo alineado con el proyecto actual y toasts con sonner."
+      - working: false
+        agent: "user"
+        comment: "Feedback de UI: en resultados se requiere patrón por tabs (Resumen General, Por Pregunta, Participación, Vista Resultado) y opción para ver respuestas/resumen por departamento."
+      - working: true
+        agent: "main"
+        comment: "Aplicado ajuste en pantalla de resultados con tabs solicitados + selector de departamento + switch de modo ('Resumen por departamento' / 'Respuestas por departamento'). Se validó visualmente con screenshots incluyendo caso real por departamento (Desarrollo)."
 
 backend:
   - task: "Backend FastAPI (INACTIVO)"
@@ -268,7 +274,7 @@ backend:
 metadata:
   created_by: "main_agent"
   version: "1.0"
-  test_sequence: 4
+  test_sequence: 5
   run_ui: true
 
 test_plan:
@@ -287,3 +293,5 @@ agent_communication:
     message: "Se implementó módulo Clima Laboral end-to-end en stack actual: backend (nuevas rutas /api/clima-laboral + cálculos de satisfacción/meta/participación/departamento + plantillas) y frontend (nueva vista /clima-laboral integrada a sidebar con flujos dashboard/crear/responder/resultados/plantillas, auto-carga de primera plantilla y visuales de resultados con gauge/progreso/participación). Pendiente validación de backend con testing agent según protocolo."
   - agent: "testing"
     message: "✅ BACKEND TESTING COMPLETE - ALL TESTS PASSED (21/21 total tests). Fixed 1 critical bug: MongoDB ObjectId serialization in POST /api/clima-laboral/templates and POST /api/clima-laboral/surveys (added .pop('_id') before returning documents). Auth fully working: login bug FIXED, tested 5 users successfully, concurrent auth working. Clima Laboral APIs fully functional: templates CRUD working, surveys with meta fields working (meta_participacion, meta_satisfaccion), survey responses working, results endpoint returning correct global_index, status, department breakdown, and stats. Permissions working (employees correctly denied 403 for create operations). Backend ready for production."
+  - agent: "main"
+    message: "Aplicado feedback visual de resultados en Clima Laboral: se incorporaron tabs 'Resumen General', 'Por Pregunta', 'Participación' y 'Vista Resultado'; además se agregó selector de departamento y conmutador para ver 'Resumen por departamento' o 'Respuestas por departamento'. Verificado manualmente con screenshots (incluyendo caso real con departamento Desarrollo)."
