@@ -213,7 +213,7 @@ frontend:
     file: "/app/frontend/src/pages/ClimaLaboralView.jsx"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: true
         agent: "main"
@@ -230,6 +230,9 @@ frontend:
       - working: true
         agent: "main"
         comment: "Implementada tabla 'Vista Resultado' (num encuesta x P1..Pn) con leyenda <=3 rojo y >3 verde, fila de promedio por pregunta, soporte por departamento, y selector aplicado a todas las tabs vía resultado visible filtrado. En resumen general se agregó bloque de Áreas de Atención y se ajustó escala de salud a Rojo/Amarillo/Verde/Azul."
+      - working: true
+        agent: "testing"
+        comment: "✅ ALL TESTS PASSED (3/3 test cases): 1) Vista Resultado tab shows Excel-style table with NUM. ENCUESTA header, P1-P3 columns with full question text, Promedio row with correct values (4.0, 5.0, 4.0), and legend showing ≤3 (red) and >3 (green). 2) Department selector correctly affects all tabs: Resumen General (satisfaction changes), Por Pregunta (question stats update), Vista Resultado (department label updates from 'Global' to 'Desarrollo' and table filters correctly). 3) All functionality working as specified in user feedback."
 
 
   - task: "Dashboard del empleado con métricas operativas del periodo"
@@ -238,7 +241,7 @@ frontend:
     file: "/app/frontend/src/pages/Dashboard.jsx"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: false
         agent: "user"
@@ -246,6 +249,9 @@ frontend:
       - working: true
         agent: "main"
         comment: "Dashboard ahora renderiza versión específica de empleado con 5 métricas solicitadas + objetivos del periodo + recordatorios + agenda + accesos rápidos, manteniendo dashboard admin existente."
+      - working: true
+        agent: "testing"
+        comment: "✅ ALL TESTS PASSED: Employee dashboard fully functional with all 6 required metrics: Comisiones y bonos ($3,440 with breakdown), Días trabajados (18/22), Descuentos y retardos (2 retardos, $590 descuentos), Próximas actividades (3 activities), Vacaciones (12 días, 4 usados), Encuestas pendientes (1 survey). Anuncios de la empresa section present with 2 announcements (Townhall mensual, Semana de bienestar). All sections rendering correctly with proper data display. Fixed minor JSX syntax error (missing closing div tag) that was preventing compilation."
 
 backend:
   - task: "Backend FastAPI (INACTIVO)"
@@ -345,3 +351,5 @@ agent_communication:
     message: "Atendido nuevo feedback visual y funcional: Vista Resultado ahora muestra tabla tipo Excel (Num. encuesta x P1..Pn) con leyenda <=3 rojo y >3 verde, fila de promedio por pregunta y filtrado por departamento. El selector de departamento impacta todas las tabs al usar resultado visible filtrado. En Resumen General se agregó bloque de Áreas de Atención y se ajustaron colores de rangos a Rojo/Amarillo/Verde/Azul. Además se rediseñó el dashboard de empleado con métricas de comisiones/bonos, días trabajados, descuentos/retardos, actividades, vacaciones y módulos extra de objetivos/recordatorios."
   - agent: "testing"
     message: "✅ BACKEND TESTING COMPLETE - ALL 30 TESTS PASSED. Verified recent changes: 1) GET /api/dashboard/employee-summary now includes NEW FIELD 'anuncios' (list of events/announcements) with correct structure (id, titulo, descripcion, fecha, tipo). Complete summary structure validated: comisiones_bonos, asistencia, actividades, vacaciones, objetivos, alertas, anuncios - all working correctly. 2) GET /api/clima-laboral/surveys/{id}/results verified with response_matrix field present in both global and department results. response_matrix includes columns (P1..Pn codes), rows (num_encuesta, values, low_count, high_count), and legend (low/high definitions). All Clima Laboral endpoints functioning correctly. Backend fully operational."
+  - agent: "testing"
+    message: "✅ FRONTEND UI TESTING COMPLETE - ALL 3 TEST CASES PASSED. Tested with credentials maria@empresa.com/maria123 (admin) and juan@empresa.com/juan123 (employee). Results: 1) Admin Clima Laboral Vista Resultado: Excel-style table working perfectly with NUM. ENCUESTA header, P1-P3 columns showing full question text, Promedio row with values (4.0, 5.0, 4.0), and legend displaying ≤3 (red) and >3 (green). 2) Department selector working across ALL tabs: Resumen General updates satisfaction metrics, Por Pregunta updates question statistics, Vista Resultado updates department label and filters table data correctly (tested Global and Desarrollo departments). 3) Employee Dashboard: All 6 metrics present and working (Comisiones y bonos: $3,440, Días trabajados: 18/22, Descuentos y retardos: 2 retardos/$590, Próximas actividades: 3, Vacaciones: 12 días/4 usados, Encuestas pendientes: 1). Anuncios de la empresa section displaying 2 announcements correctly. Fixed 1 minor JSX syntax error in Dashboard.jsx (extra closing div tag) that was blocking compilation. All user feedback requirements fully implemented and verified."

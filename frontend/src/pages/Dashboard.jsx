@@ -153,6 +153,7 @@ const Dashboard = ({ isAdmin }) => {
             <p className="text-sm text-slate-500">Vacaciones</p>
             <p className="text-2xl font-bold text-slate-900">{summary.vacaciones?.saldo_dias || 0} días</p>
             <p className="text-xs text-slate-500 mt-1">Usados: {summary.vacaciones?.usados_periodo || 0}</p>
+          </div>
 
           <div className="bg-white border border-slate-200 rounded-2xl p-5">
             <CheckCircle2 className="w-5 h-5 text-indigo-500 mb-2" />
@@ -161,7 +162,6 @@ const Dashboard = ({ isAdmin }) => {
             <p className="text-xs text-slate-500 mt-1 line-clamp-2">
               {nextPendingSurvey ? nextPendingSurvey.nombre : 'No tienes encuestas pendientes'}
             </p>
-          </div>
           </div>
         </div>
 
