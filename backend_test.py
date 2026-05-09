@@ -443,13 +443,13 @@ def test_respond_survey():
 
 
 def test_get_survey_results():
-    """Test GET /api/clima-laboral/surveys/{id}/results"""
+    """Test GET /api/clima-laboral/surveys/{id}/results with NEW FIELDS"""
     if not admin_token or not created_survey_id:
         log_test("GET Survey Results", False, "No admin token or survey ID available")
         return
     
     print("\n" + "="*60)
-    print("Testing Clima Laboral - Survey Results")
+    print("Testing Clima Laboral - Survey Results (NEW FIELDS)")
     print("="*60)
     
     try:
@@ -462,60 +462,298 @@ def test_get_survey_results():
         if response.status_code == 200:
             data = response.json()
             
-            # Check required fields
+            # Check required fields including NEW FIELDS
             required_fields = ["ok", "nombre", "total", "global_index", "status", "stats", 
-                             "meta_participacion", "meta_satisfaccion", "por_departamento"]
+                             "meta_participacion", "meta_satisfaccion", "por_departamento",
+                             "question_promedios", "areas_atencion", "response_matrix"]
             
             missing_fields = [field for field in required_fields if field not in data]
             
-            if not missing_fields:
-                global_index = data.get("global_index")
-                status = data.get("status")
-                meta_participacion = data.get("meta_participacion")
-                meta_satisfaccion = data.get("meta_satisfaccion")
-                total = data.get("total")
-                por_departamento = data.get("por_departamento", {})
-                stats = data.get("stats", [])
+            if missing_fields:
+                log_test("GET Survey Results - Required Fields", False, f"Missing required fields: {missing_fields}")
+                return
+            
+            global_index = data.get("global_index")
+            status = data.get("status")
+            meta_participacion = data.get("meta_participacion")
+            meta_satisfaccion = data.get("meta_satisfaccion")
+            total = data.get("total")
+            por_departamento = data.get("por_departamento", {})
+            stats = data.get("stats", [])
+            question_promedios = data.get("question_promedios", [])
+            areas_atencion = data.get("areas_atencion", [])
+            response_matrix = data.get("response_matrix", {})
+            
+            log_test("GET Survey Results - Basic Structure", True, 
+                    f"All required fields present")
+            
+            log_test("GET Survey Results - Global Index", True, 
+                    f"global_index: {global_index}, status: {status}")
+            
+            log_test("GET Survey Results - Meta Fields", True, 
+                    f"meta_participacion: {meta_participacion}, meta_satisfaccion: {meta_satisfaccion}")
+            
+            log_test("GET Survey Results - Responses", True, 
+                    f"Total responses: {total}")
+            
+            # NEW FIELD: question_promedios
+            if isinstance(question_promedios, list) and len(question_promedios) > 0:
+                sample_promedio = question_promedios[0]
+                required_promedio_fields = ["id", "codigo", "pregunta", "promedio", "alerta"]
+                promedio_missing = [f for f in required_promedio_fields if f not in sample_promedio]
                 
-                log_test("GET Survey Results - Structure", True, 
-                        f"All required fields present")
-                
-                log_test("GET Survey Results - Global Index", True, 
-                        f"global_index: {global_index}, status: {status}")
-                
-                log_test("GET Survey Results - Meta Fields", True, 
-                        f"meta_participacion: {meta_participacion}, meta_satisfaccion: {meta_satisfaccion}")
-                
-                log_test("GET Survey Results - Responses", True, 
-                        f"Total responses: {total}")
-                
-                log_test("GET Survey Results - Departments", True, 
-                        f"Departments: {len(por_departamento)} ({', '.join(por_departamento.keys())})")
-                
-                log_test("GET Survey Results - Stats", True, 
-                        f"Question stats: {len(stats)} questions analyzed")
-                
-                # Verify department structure
-                if por_departamento:
-                    dept_name = list(por_departamento.keys())[0]
-                    dept_data = por_departamento[dept_name]
-                    dept_required = ["total", "global_index", "status", "stats"]
-                    dept_missing = [field for field in dept_required if field not in dept_data]
-                    
-                    if not dept_missing:
-                        log_test("GET Survey Results - Department Structure", True, 
-                                f"Department '{dept_name}' has all required fields")
-                    else:
-                        log_test("GET Survey Results - Department Structure", False, 
-                                f"Department missing fields: {dept_missing}")
-                
+                if not promedio_missing:
+                    log_test("GET Survey Results - question_promedios", True, 
+                            f"Found {len(question_promedios)} question promedios with correct structure (codigo, promedio, alerta)")
+                else:
+                    log_test("GET Survey Results - question_promedios", False, 
+                            f"question_promedios missing fields: {promedio_missing}")
             else:
-                log_test("GET Survey Results", False, f"Missing required fields: {missing_fields}")
+                log_test("GET Survey Results - question_promedios", False, 
+                        f"question_promedios is empty or not a list: {question_promedios}")
+            
+            # NEW FIELD: areas_atencion
+            if isinstance(areas_atencion, list):
+                if len(areas_atencion) > 0:
+                    sample_area = areas_atencion[0]
+                    required_area_fields = ["id", "codigo", "pregunta", "promedio"]
+                    area_missing = [f for f in required_area_fields if f not in sample_area]
+                    
+                    if not area_missing:
+                        log_test("GET Survey Results - areas_atencion", True, 
+                                f"Found {len(areas_atencion)} areas de atención (promedio <= 3)")
+                    else:
+                        log_test("GET Survey Results - areas_atencion", False, 
+                                f"areas_atencion missing fields: {area_missing}")
+                else:
+                    log_test("GET Survey Results - areas_atencion", True, 
+                            "areas_atencion is empty (no questions with promedio <= 3)")
+            else:
+                log_test("GET Survey Results - areas_atencion", False, 
+                        f"areas_atencion is not a list: {areas_atencion}")
+            
+            # NEW FIELD: response_matrix (global)
+            if isinstance(response_matrix, dict):
+                matrix_required = ["columns", "rows", "legend"]
+                matrix_missing = [f for f in matrix_required if f not in response_matrix]
+                
+                if not matrix_missing:
+                    columns = response_matrix.get("columns", [])
+                    rows = response_matrix.get("rows", [])
+                    legend = response_matrix.get("legend", {})
+                    
+                    # Verify columns structure
+                    if len(columns) > 0:
+                        sample_col = columns[0]
+                        col_required = ["id", "codigo", "pregunta", "tipo"]
+                        col_missing = [f for f in col_required if f not in sample_col]
+                        
+                        if not col_missing:
+                            log_test("GET Survey Results - response_matrix.columns", True, 
+                                    f"Found {len(columns)} columns with correct structure (P1, P2, etc.)")
+                        else:
+                            log_test("GET Survey Results - response_matrix.columns", False, 
+                                    f"columns missing fields: {col_missing}")
+                    else:
+                        log_test("GET Survey Results - response_matrix.columns", False, 
+                                "response_matrix.columns is empty")
+                    
+                    # Verify rows structure
+                    if len(rows) > 0:
+                        sample_row = rows[0]
+                        row_required = ["num_encuesta", "response_id", "values", "low_count", "high_count"]
+                        row_missing = [f for f in row_required if f not in sample_row]
+                        
+                        if not row_missing:
+                            log_test("GET Survey Results - response_matrix.rows", True, 
+                                    f"Found {len(rows)} rows with correct structure (num_encuesta, values, counts)")
+                        else:
+                            log_test("GET Survey Results - response_matrix.rows", False, 
+                                    f"rows missing fields: {row_missing}")
+                    else:
+                        log_test("GET Survey Results - response_matrix.rows", False, 
+                                "response_matrix.rows is empty")
+                    
+                    # Verify legend
+                    if "low" in legend and "high" in legend:
+                        log_test("GET Survey Results - response_matrix.legend", True, 
+                                f"Legend present with low/high definitions")
+                    else:
+                        log_test("GET Survey Results - response_matrix.legend", False, 
+                                f"Legend missing low/high: {legend}")
+                else:
+                    log_test("GET Survey Results - response_matrix", False, 
+                            f"response_matrix missing fields: {matrix_missing}")
+            else:
+                log_test("GET Survey Results - response_matrix", False, 
+                        f"response_matrix is not a dict: {response_matrix}")
+            
+            # Verify department structure with NEW FIELDS
+            if por_departamento:
+                dept_name = list(por_departamento.keys())[0]
+                dept_data = por_departamento[dept_name]
+                dept_required = ["total", "global_index", "status", "stats", 
+                               "question_promedios", "areas_atencion", "response_matrix"]
+                dept_missing = [field for field in dept_required if field not in dept_data]
+                
+                if not dept_missing:
+                    log_test("GET Survey Results - por_departamento Structure", True, 
+                            f"Department '{dept_name}' has all required fields including NEW FIELDS")
+                    
+                    # Verify department response_matrix
+                    dept_matrix = dept_data.get("response_matrix", {})
+                    if isinstance(dept_matrix, dict) and "columns" in dept_matrix and "rows" in dept_matrix:
+                        dept_cols = dept_matrix.get("columns", [])
+                        dept_rows = dept_matrix.get("rows", [])
+                        log_test("GET Survey Results - por_departamento.response_matrix", True, 
+                                f"Department '{dept_name}' has response_matrix with {len(dept_cols)} columns and {len(dept_rows)} rows")
+                    else:
+                        log_test("GET Survey Results - por_departamento.response_matrix", False, 
+                                f"Department response_matrix structure invalid: {dept_matrix}")
+                else:
+                    log_test("GET Survey Results - por_departamento Structure", False, 
+                            f"Department missing fields: {dept_missing}")
+            else:
+                log_test("GET Survey Results - por_departamento", False, 
+                        "No departments found in results")
+                
         else:
             log_test("GET Survey Results", False, f"Status {response.status_code}: {response.text}")
     
     except Exception as e:
         log_test("GET Survey Results", False, f"Exception: {str(e)}")
+
+
+def test_employee_dashboard_summary():
+    """Test GET /api/dashboard/employee-summary"""
+    if not employee_token:
+        log_test("GET Employee Dashboard Summary", False, "No employee token available")
+        return
+    
+    print("\n" + "="*60)
+    print("Testing Dashboard - Employee Summary")
+    print("="*60)
+    
+    try:
+        response = requests.get(
+            f"{BASE_URL}/dashboard/employee-summary",
+            headers={"Authorization": f"Bearer {employee_token}"},
+            timeout=10
+        )
+        
+        if response.status_code == 200:
+            data = response.json()
+            
+            # Check ok and summary fields
+            if not data.get("ok"):
+                log_test("GET Employee Dashboard Summary - Response", False, "ok field is not true")
+                return
+            
+            summary = data.get("summary")
+            if not summary:
+                log_test("GET Employee Dashboard Summary - Response", False, "summary field missing")
+                return
+            
+            log_test("GET Employee Dashboard Summary - Response", True, "ok=true and summary present")
+            
+            # Check required summary fields
+            required_fields = ["comisiones_bonos", "asistencia", "actividades", 
+                             "vacaciones", "objetivos", "alertas"]
+            missing_fields = [field for field in required_fields if field not in summary]
+            
+            if missing_fields:
+                log_test("GET Employee Dashboard Summary - Structure", False, 
+                        f"Missing required fields: {missing_fields}")
+                return
+            
+            log_test("GET Employee Dashboard Summary - Structure", True, 
+                    "All required fields present (comisiones_bonos, asistencia, actividades, vacaciones, objetivos, alertas)")
+            
+            # Verify comisiones_bonos structure
+            comisiones_bonos = summary.get("comisiones_bonos", {})
+            cb_required = ["comisiones", "bono_desempeno", "total", "moneda"]
+            cb_missing = [f for f in cb_required if f not in comisiones_bonos]
+            
+            if not cb_missing:
+                log_test("GET Employee Dashboard Summary - comisiones_bonos", True, 
+                        f"comisiones: {comisiones_bonos.get('comisiones')}, bono: {comisiones_bonos.get('bono_desempeno')}, total: {comisiones_bonos.get('total')} {comisiones_bonos.get('moneda')}")
+            else:
+                log_test("GET Employee Dashboard Summary - comisiones_bonos", False, 
+                        f"Missing fields: {cb_missing}")
+            
+            # Verify asistencia structure
+            asistencia = summary.get("asistencia", {})
+            asist_required = ["dias_habiles", "dias_trabajados", "retardos", "descuentos"]
+            asist_missing = [f for f in asist_required if f not in asistencia]
+            
+            if not asist_missing:
+                log_test("GET Employee Dashboard Summary - asistencia", True, 
+                        f"dias_trabajados: {asistencia.get('dias_trabajados')}/{asistencia.get('dias_habiles')}, retardos: {asistencia.get('retardos')}, descuentos: {asistencia.get('descuentos')}")
+            else:
+                log_test("GET Employee Dashboard Summary - asistencia", False, 
+                        f"Missing fields: {asist_missing}")
+            
+            # Verify actividades
+            actividades = summary.get("actividades", [])
+            if isinstance(actividades, list) and len(actividades) > 0:
+                sample_act = actividades[0]
+                act_required = ["id", "titulo", "fecha", "tipo", "prioridad"]
+                act_missing = [f for f in act_required if f not in sample_act]
+                
+                if not act_missing:
+                    log_test("GET Employee Dashboard Summary - actividades", True, 
+                            f"Found {len(actividades)} activities with correct structure")
+                else:
+                    log_test("GET Employee Dashboard Summary - actividades", False, 
+                            f"Activity missing fields: {act_missing}")
+            else:
+                log_test("GET Employee Dashboard Summary - actividades", False, 
+                        f"actividades is empty or not a list")
+            
+            # Verify vacaciones structure
+            vacaciones = summary.get("vacaciones", {})
+            vac_required = ["saldo_dias", "usados_periodo", "proximas"]
+            vac_missing = [f for f in vac_required if f not in vacaciones]
+            
+            if not vac_missing:
+                proximas = vacaciones.get("proximas", [])
+                log_test("GET Employee Dashboard Summary - vacaciones", True, 
+                        f"saldo: {vacaciones.get('saldo_dias')} días, usados: {vacaciones.get('usados_periodo')}, próximas: {len(proximas)}")
+            else:
+                log_test("GET Employee Dashboard Summary - vacaciones", False, 
+                        f"Missing fields: {vac_missing}")
+            
+            # Verify objetivos
+            objetivos = summary.get("objetivos", [])
+            if isinstance(objetivos, list) and len(objetivos) > 0:
+                sample_obj = objetivos[0]
+                obj_required = ["id", "titulo", "avance"]
+                obj_missing = [f for f in obj_required if f not in sample_obj]
+                
+                if not obj_missing:
+                    log_test("GET Employee Dashboard Summary - objetivos", True, 
+                            f"Found {len(objetivos)} objectives with correct structure")
+                else:
+                    log_test("GET Employee Dashboard Summary - objetivos", False, 
+                            f"Objective missing fields: {obj_missing}")
+            else:
+                log_test("GET Employee Dashboard Summary - objetivos", False, 
+                        f"objetivos is empty or not a list")
+            
+            # Verify alertas
+            alertas = summary.get("alertas", [])
+            if isinstance(alertas, list):
+                log_test("GET Employee Dashboard Summary - alertas", True, 
+                        f"Found {len(alertas)} alerts")
+            else:
+                log_test("GET Employee Dashboard Summary - alertas", False, 
+                        f"alertas is not a list")
+                
+        else:
+            log_test("GET Employee Dashboard Summary", False, f"Status {response.status_code}: {response.text}")
+    
+    except Exception as e:
+        log_test("GET Employee Dashboard Summary", False, f"Exception: {str(e)}")
 
 
 def print_summary():
@@ -562,6 +800,7 @@ def main():
     test_get_surveys()
     test_respond_survey()
     test_get_survey_results()
+    test_employee_dashboard_summary()
     
     # Print summary
     print_summary()

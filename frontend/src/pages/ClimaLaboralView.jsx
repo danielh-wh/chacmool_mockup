@@ -21,10 +21,10 @@ import {
 import { toast, Toaster } from 'sonner';
 
 const HEALTH_LEVELS = [
-  { label: 'Óptimo', min: 90, max: 100, color: '#00B050' },
-  { label: 'Saludable', min: 60, max: 89, color: '#FFCC00' },
-  { label: 'Mejorable', min: 31, max: 59, color: '#FF6600' },
-  { label: 'Poco Saludable', min: 0, max: 30, color: '#FF0000' },
+  { label: 'Poco Saludable', min: 0, max: 30, color: '#EF4444' },
+  { label: 'Mejorable', min: 31, max: 59, color: '#F59E0B' },
+  { label: 'Saludable', min: 60, max: 89, color: '#22C55E' },
+  { label: 'Óptimo', min: 90, max: 100, color: '#3B82F6' },
 ];
 
 const getHealthLevel = (value) => {
@@ -109,7 +109,7 @@ const ProgressVsMetaCard = ({ globalIndex, metaSatisfaccion }) => {
       </p>
 
       <div className="grid grid-cols-4 gap-2 text-[11px] font-medium">
-        {HEALTH_LEVELS.slice().reverse().map((item) => (
+        {HEALTH_LEVELS.map((item) => (
           <div key={item.label} className="rounded-lg py-2 text-center text-slate-900" style={{ backgroundColor: `${item.color}33` }}>
             <p>{item.label}</p>
             <p className="text-slate-600">{item.min}–{Math.floor(item.max)}%</p>
@@ -161,7 +161,7 @@ const StandardsChevron = ({ globalIndex }) => {
     <div className="bg-white border border-slate-200 rounded-2xl p-6">
       <p className="text-xs uppercase tracking-wider text-slate-500 font-semibold mb-4">Estándares de Salud</p>
       <div className="grid grid-cols-1 md:grid-cols-4 gap-2">
-        {HEALTH_LEVELS.slice().reverse().map((item, idx) => {
+        {HEALTH_LEVELS.map((item, idx) => {
           const isActive = level.label === item.label;
           const baseClip =
             idx === 0
@@ -233,6 +233,9 @@ const ClimaLaboralView = () => {
       global_index: dept.global_index,
       status: dept.status,
       stats: dept.stats,
+      question_promedios: dept.question_promedios || [],
+      areas_atencion: dept.areas_atencion || [],
+      response_matrix: dept.response_matrix || { columns: [], rows: [] },
       participantes: [],
     };
   }, [activeResult, selectedDepartment]);
@@ -1163,6 +1166,133 @@ const ClimaLaboralView = () => {
     );
   };
 
+
+  const renderAttentionAreas = () => {
+    const attentionItems = visibleResult?.areas_atencion || [];
+
+    return (
+      <div className="bg-white border border-slate-200 rounded-2xl p-6">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-sm font-semibold uppercase tracking-wider text-slate-500">Áreas de atención</h3>
+          <span className="text-xs text-slate-500">Promedio por pregunta</span>
+        </div>
+
+        {attentionItems.length === 0 ? (
+          <div className="rounded-xl bg-emerald-50 border border-emerald-200 p-4 text-sm text-emerald-700">
+            No se detectaron preguntas críticas para el departamento seleccionado.
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {attentionItems.map((item) => (
+              <div key={item.id} className="border border-red-100 bg-red-50 rounded-xl p-4">
+                <p className="text-sm font-semibold text-red-700">{item.codigo} · Promedio {item.promedio}/5</p>
+                <p className="text-sm text-red-900 mt-1">{item.pregunta}</p>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  const renderResponseMatrixTable = () => {
+    const matrix = visibleResult?.response_matrix || { columns: [], rows: [] };
+    const columns = matrix.columns || [];
+    const rows = matrix.rows || [];
+    const questionAverageMap = Object.fromEntries((visibleResult?.question_promedios || []).map((item) => [item.id, item.promedio]));
+
+    if (columns.length === 0) {
+      return (
+        <div className="bg-white border border-slate-200 rounded-2xl p-6 text-center text-slate-500">
+          No hay columnas disponibles para construir la tabla de resultados.
+        </div>
+      );
+    }
+
+    return (
+      <div className="space-y-4">
+        <div className="bg-white border border-slate-200 rounded-2xl p-4 flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h3 className="font-semibold text-slate-900">Vista Resultado (equivalente tabla)</h3>
+            <p className="text-xs text-slate-500 mt-1">
+              Departamento: <span className="font-medium text-slate-700">{selectedDepartment}</span>
+            </p>
+          </div>
+
+          <div className="flex items-center gap-4 text-xs font-medium">
+            <span className="inline-flex items-center gap-2 text-red-600">
+              <span className="w-2.5 h-2.5 rounded-full bg-red-500" />
+              ≤ 3
+            </span>
+            <span className="inline-flex items-center gap-2 text-emerald-600">
+              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
+              {'> 3'}
+            </span>
+          </div>
+        </div>
+
+        <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="min-w-[880px] w-full">
+              <thead className="bg-slate-50 border-b border-slate-200">
+                <tr>
+                  <th className="text-left text-xs uppercase tracking-wider text-slate-500 px-4 py-3 sticky left-0 bg-slate-50">Núm. Encuesta</th>
+                  {columns.map((column) => (
+                    <th key={column.id} className="text-left px-4 py-3 min-w-[160px]">
+                      <p className="text-xs font-semibold text-slate-900">{column.codigo}</p>
+                      <p className="text-[11px] text-slate-500 line-clamp-2 mt-1">{column.pregunta}</p>
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+
+              <tbody>
+                <tr className="border-b border-slate-200 bg-slate-50/80">
+                  <td className="px-4 py-2 text-xs font-semibold text-slate-600 sticky left-0 bg-slate-50/80">Promedio</td>
+                  {columns.map((column) => {
+                    const avg = Number(questionAverageMap[column.id] || 0);
+                    const colorClass = avg <= 3 ? 'text-red-600' : 'text-emerald-600';
+                    return (
+                      <td key={`avg-${column.id}`} className={`px-4 py-2 text-sm font-semibold ${colorClass}`}>
+                        {avg.toFixed(1)}
+                      </td>
+                    );
+                  })}
+                </tr>
+
+                {rows.length === 0 ? (
+                  <tr>
+                    <td colSpan={columns.length + 1} className="px-4 py-6 text-center text-sm text-slate-500">
+                      Aún no hay respuestas para mostrar en la tabla.
+                    </td>
+                  </tr>
+                ) : (
+                  rows.map((row) => (
+                    <tr key={row.response_id || row.num_encuesta} className="border-b border-slate-100 hover:bg-slate-50/60 transition-colors">
+                      <td className="px-4 py-3 text-sm font-medium text-slate-900 sticky left-0 bg-white">{row.num_encuesta}</td>
+                      {columns.map((column) => {
+                        const cell = row.values?.[column.id];
+                        const numericCell = typeof cell === 'number' ? cell : Number(cell);
+                        const hasValue = Number.isFinite(numericCell);
+                        const colorClass = !hasValue ? 'text-slate-400' : numericCell <= 3 ? 'text-red-600' : 'text-emerald-600';
+
+                        return (
+                          <td key={`${row.num_encuesta}-${column.id}`} className={`px-4 py-3 text-sm font-semibold ${colorClass}`}>
+                            {hasValue ? (Number.isInteger(numericCell) ? numericCell : numericCell.toFixed(1)) : '-'}
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   const renderResults = () => {
     const survey = surveys.find((item) => item.id === selectedSurveyId);
     const departments = Object.keys(activeResult?.por_departamento || {});
@@ -1239,6 +1369,37 @@ const ClimaLaboralView = () => {
             </div>
 
             <StandardsChevron globalIndex={visibleResult.global_index} />
+
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+              {renderAttentionAreas()}
+
+              <div className="bg-white border border-slate-200 rounded-2xl p-6">
+                <h3 className="text-sm font-semibold uppercase tracking-wider text-slate-500 mb-4">Promedio por pregunta</h3>
+
+                {(visibleResult.question_promedios || []).length === 0 ? (
+                  <p className="text-sm text-slate-500">No hay preguntas cerradas para calcular promedio.</p>
+                ) : (
+                  <div className="space-y-3">
+                    {(visibleResult.question_promedios || []).map((question) => (
+                      <div key={question.id}>
+                        <div className="flex items-center justify-between text-sm mb-1">
+                          <span className="text-slate-700 line-clamp-1">{question.codigo} · {question.pregunta}</span>
+                          <span className={`font-semibold ${question.promedio <= 3 ? 'text-red-600' : 'text-emerald-600'}`}>
+                            {Number(question.promedio || 0).toFixed(1)} / 5
+                          </span>
+                        </div>
+                        <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
+                          <div
+                            className={`h-full rounded-full ${question.promedio <= 3 ? 'bg-red-500' : 'bg-emerald-500'}`}
+                            style={{ width: `${Math.max(0, Math.min(100, Number(question.promedio || 0) * 20))}%` }}
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
           </>
         )}
 
@@ -1325,7 +1486,7 @@ const ClimaLaboralView = () => {
             <div className="bg-white border border-slate-200 rounded-2xl p-4 flex flex-wrap items-center justify-between gap-3">
               <div>
                 <h3 className="font-semibold text-slate-900">Vista por Departamento</h3>
-                <p className="text-xs text-slate-500 mt-1">Alterna entre resumen y respuestas por departamento.</p>
+                <p className="text-xs text-slate-500 mt-1">Alterna entre resumen por departamento y tabla de respuestas.</p>
               </div>
 
               <div className="flex items-center gap-2 bg-slate-100 p-1 rounded-xl">
@@ -1343,22 +1504,14 @@ const ClimaLaboralView = () => {
                     departmentViewMode === 'respuestas' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600'
                   }`}
                 >
-                  Respuestas por departamento
+                  Tabla de respuestas
                 </button>
               </div>
             </div>
 
-            {departments.length === 0 ? (
-              <div className="bg-white border border-slate-200 rounded-2xl p-6 text-center text-slate-500">
-                No hay datos por departamento disponibles aún.
-              </div>
-            ) : null}
-
-            {departments.length > 0 && departmentViewMode === 'resumen' && (
-              selectedDepartment === 'Global' ? (
-                renderComparativeTable()
-              ) : (
-                <div className="space-y-4">
+            {departmentViewMode === 'resumen' && (
+              <div className="space-y-4">
+                {selectedDepartment !== 'Global' && (
                   <div className="bg-white border border-slate-200 rounded-2xl p-6">
                     <p className="text-sm text-slate-500 mb-2">Resumen del departamento</p>
                     <div className="flex items-center gap-3 mb-3">
@@ -1371,22 +1524,13 @@ const ClimaLaboralView = () => {
                     </div>
                     <p className="text-sm text-slate-600">Total de respuestas en {selectedDepartment}: {visibleResult.total}</p>
                   </div>
+                )}
 
-                  {renderComparativeTable()}
-                </div>
-              )
+                {renderComparativeTable()}
+              </div>
             )}
 
-            {departments.length > 0 && departmentViewMode === 'respuestas' && (
-              selectedDepartment === 'Global' ? (
-                <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 text-sm text-amber-700 flex items-center gap-2">
-                  <AlertTriangle className="w-4 h-4" />
-                  Selecciona un departamento específico para ver sus respuestas.
-                </div>
-              ) : (
-                renderQuestionStats()
-              )
-            )}
+            {departmentViewMode === 'respuestas' && renderResponseMatrixTable()}
           </div>
         )}
       </div>

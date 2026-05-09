@@ -51,6 +51,92 @@ def normalize_question_payload(question: Dict[str, Any], order: int) -> Dict[str
     }
 
 
+def extract_numeric_score(question: Dict[str, Any], answer: Dict[str, Any]) -> float | None:
+    if not answer:
+        return None
+
+    if question.get("tipo") == "abierta":
+        return None
+
+    option_lookup = {option.get("id"): option for option in question.get("opciones", [])}
+    selected_values = []
+
+    for option_id in answer.get("opcion_ids", []):
+        option_data = option_lookup.get(option_id)
+        if option_data is None:
+            continue
+        selected_values.append(float(option_data.get("valor", 0)))
+
+    if not selected_values:
+        return None
+
+    return round(sum(selected_values) / len(selected_values), 2)
+
+
+def build_response_matrix(survey: Dict[str, Any], responses: List[Dict[str, Any]]) -> Dict[str, Any]:
+    ordered_questions = sorted(survey.get("preguntas", []), key=lambda q: q.get("orden", 0))
+    closed_questions = [question for question in ordered_questions if question.get("tipo") != "abierta"]
+
+    internal_columns = []
+    for idx, question in enumerate(closed_questions, start=1):
+        internal_columns.append(
+            {
+                "id": question.get("id"),
+                "codigo": f"P{idx}",
+                "pregunta": question.get("pregunta", ""),
+                "tipo": question.get("tipo"),
+                "question": question,
+            }
+        )
+
+    ordered_responses = sorted(responses, key=lambda item: item.get("created_at") or datetime.min)
+
+    rows = []
+    for row_index, response in enumerate(ordered_responses, start=1):
+        values: Dict[str, Any] = {}
+        low_count = 0
+        high_count = 0
+
+        for column in internal_columns:
+            question = column.get("question")
+            question_id = column.get("id")
+            answer = next(
+                (item for item in response.get("respuestas", []) if item.get("pregunta_id") == question_id),
+                None,
+            )
+            score = extract_numeric_score(question, answer)
+            values[question_id] = score
+
+            if score is None:
+                continue
+
+            if score <= 3:
+                low_count += 1
+            else:
+                high_count += 1
+
+        rows.append(
+            {
+                "num_encuesta": row_index,
+                "response_id": response.get("id"),
+                "values": values,
+                "low_count": low_count,
+                "high_count": high_count,
+            }
+        )
+
+    columns = [{k: v for k, v in column.items() if k != "question"} for column in internal_columns]
+
+    return {
+        "columns": columns,
+        "rows": rows,
+        "legend": {
+            "low": {"label": "≤ 3", "color": "#DC2626"},
+            "high": {"label": "> 3", "color": "#16A34A"},
+        },
+    }
+
+
 def compute_results_payload(survey: Dict[str, Any], responses: List[Dict[str, Any]], include_participants: bool) -> Dict[str, Any]:
     stats = []
     total_points = 0
@@ -140,6 +226,37 @@ def compute_results_payload(survey: Dict[str, Any], responses: List[Dict[str, An
     global_index = round((total_points / (total_votes * 5)) * 100, 1) if total_votes else 0
     health = get_health_status(global_index)
 
+    question_code_lookup = {
+        question.get("id"): f"P{idx}"
+        for idx, question in enumerate([q for q in questions if q.get("tipo") != "abierta"], start=1)
+    }
+
+    question_promedios = [
+        {
+            "id": stat.get("id"),
+            "codigo": question_code_lookup.get(stat.get("id"), "P?"),
+            "pregunta": stat.get("pregunta"),
+            "promedio": stat.get("promedio", 0),
+            "alerta": stat.get("alerta", False),
+        }
+        for stat in stats
+        if stat.get("tipo") != "abierta"
+    ]
+
+    areas_atencion = sorted(
+        [
+            {
+                "id": item.get("id"),
+                "codigo": item.get("codigo"),
+                "pregunta": item.get("pregunta"),
+                "promedio": item.get("promedio", 0),
+            }
+            for item in question_promedios
+            if item.get("promedio", 0) <= 3
+        ],
+        key=lambda item: item.get("promedio", 0),
+    )
+
     participantes = []
     if include_participants:
         for participant in participant_scores.values():
@@ -161,6 +278,9 @@ def compute_results_payload(survey: Dict[str, Any], responses: List[Dict[str, An
         "status": health.get("label"),
         "health_color": health.get("color"),
         "stats": stats,
+        "question_promedios": question_promedios,
+        "areas_atencion": areas_atencion,
+        "response_matrix": build_response_matrix(survey, responses),
         "participantes": participantes,
     }
 
@@ -349,7 +469,7 @@ async def get_survey_results(survey_id: str, current_user: dict = Depends(get_cu
     if not survey:
         raise HTTPException(status_code=404, detail="Encuesta no encontrada")
 
-    responses = await db.clima_responses.find({"survey_id": survey_id}, {"_id": 0}).to_list(5000)
+    responses = await db.clima_responses.find({"survey_id": survey_id}, {"_id": 0}).sort("created_at", 1).to_list(5000)
     global_results = compute_results_payload(survey, responses, include_participants=not survey.get("es_anonima", True))
 
     by_department: Dict[str, List[Dict[str, Any]]] = {}
@@ -367,6 +487,9 @@ async def get_survey_results(survey_id: str, current_user: dict = Depends(get_cu
             "global_index": calc.get("global_index", 0),
             "status": calc.get("status"),
             "stats": calc.get("stats", []),
+            "question_promedios": calc.get("question_promedios", []),
+            "areas_atencion": calc.get("areas_atencion", []),
+            "response_matrix": calc.get("response_matrix", {"columns": [], "rows": []}),
         }
 
     return {
@@ -379,6 +502,9 @@ async def get_survey_results(survey_id: str, current_user: dict = Depends(get_cu
         "global_index": global_results.get("global_index", 0),
         "status": global_results.get("status"),
         "stats": global_results.get("stats", []),
+        "question_promedios": global_results.get("question_promedios", []),
+        "areas_atencion": global_results.get("areas_atencion", []),
+        "response_matrix": global_results.get("response_matrix", {"columns": [], "rows": []}),
         "participantes": global_results.get("participantes", []),
         "por_departamento": department_results,
     }

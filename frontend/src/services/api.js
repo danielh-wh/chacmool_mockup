@@ -595,3 +595,14 @@ export const climateAPI = {
     return parseClimaResponse(response, 'No se pudo eliminar la plantilla');
   }
 };
+
+
+// Employee Dashboard API
+export const dashboardAPI = {
+  getEmployeeSummary: async () => {
+    const response = await fetch(`${API_URL}/api/dashboard/employee-summary`, {
+      headers: getAuthHeaders()
+    });
+    return parseClimaResponse(response, 'No se pudo cargar el resumen del dashboard');
+  }
+};

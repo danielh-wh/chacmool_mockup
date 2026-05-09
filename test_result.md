@@ -224,6 +224,28 @@ frontend:
       - working: true
         agent: "main"
         comment: "Aplicado ajuste en pantalla de resultados con tabs solicitados + selector de departamento + switch de modo ('Resumen por departamento' / 'Respuestas por departamento'). Se validó visualmente con screenshots incluyendo caso real por departamento (Desarrollo)."
+      - working: false
+        agent: "user"
+        comment: "Nuevo feedback: Vista Resultado debe ser tabla tipo Excel por pregunta/respuesta, selector de departamento debe impactar todas las tabs, agregar áreas de atención en resumen y ajustar colores de rangos (Rojo/Amarillo/Verde/Azul)."
+      - working: true
+        agent: "main"
+        comment: "Implementada tabla 'Vista Resultado' (num encuesta x P1..Pn) con leyenda <=3 rojo y >3 verde, fila de promedio por pregunta, soporte por departamento, y selector aplicado a todas las tabs vía resultado visible filtrado. En resumen general se agregó bloque de Áreas de Atención y se ajustó escala de salud a Rojo/Amarillo/Verde/Azul."
+
+
+  - task: "Dashboard del empleado con métricas operativas del periodo"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/pages/Dashboard.jsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: false
+        agent: "user"
+        comment: "Solicitado para portal empleado: comisiones/bonos, días trabajados, descuentos/retardos, recordatorio de actividades y vacaciones, más información relevante en diseño adecuado."
+      - working: true
+        agent: "main"
+        comment: "Dashboard ahora renderiza versión específica de empleado con 5 métricas solicitadas + objetivos del periodo + recordatorios + agenda + accesos rápidos, manteniendo dashboard admin existente."
 
 backend:
   - task: "Backend FastAPI (INACTIVO)"
@@ -262,7 +284,7 @@ backend:
     file: "/app/backend/routes/clima_laboral.py"
     stuck_count: 0
     priority: "high"
-    needs_retesting: false
+    needs_retesting: true
     status_history:
       - working: true
         agent: "main"
@@ -270,16 +292,34 @@ backend:
       - working: true
         agent: "testing"
         comment: "✅ ALL TESTS PASSED (17/17): Fixed critical MongoDB ObjectId serialization bug in POST templates and surveys (added .pop('_id') before returning). Verified: GET /api/clima-laboral/templates (working), POST /api/clima-laboral/templates (working, creates templates with questions), POST /api/clima-laboral/surveys (working with meta_participacion=80 and meta_satisfaccion=75), GET /api/clima-laboral/surveys (working, returns all surveys), POST /api/clima-laboral/surveys/{id}/respond (working, accepts responses), GET /api/clima-laboral/surveys/{id}/results (working, returns global_index=85.0, status='Saludable', meta fields, por_departamento breakdown with Desarrollo dept, stats for 4 questions, participantes list). Edge cases tested: meta_participacion=0, meta values=100, employee permissions (403 for create operations). All calculations and data structures correct."
+      - working: true
+        agent: "main"
+        comment: "Resultados enriquecidos: ahora /api/clima-laboral/surveys/{id}/results incluye question_promedios, areas_atencion y response_matrix (tabla por respuesta con P1..Pn), tanto global como por departamento, para soportar Vista Resultado estilo Excel y filtros cross-tab."
+
+  - task: "API de resumen para dashboard de empleado"
+    implemented: true
+    working: true
+    file: "/app/backend/routes/dashboard.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: true
+        agent: "main"
+        comment: "Nuevo endpoint GET /api/dashboard/employee-summary con payload de periodo (comisiones/bonos, asistencia, retardos/descuentos, actividades, vacaciones, objetivos y alertas) y persistencia en dashboard_employee_summary por usuario/periodo."
 
 metadata:
   created_by: "main_agent"
   version: "1.0"
-  test_sequence: 5
+  test_sequence: 6
   run_ui: true
 
 test_plan:
   current_focus:
+    - "APIs de Clima Laboral con metas, plantillas y resultados"
+    - "API de resumen para dashboard de empleado"
     - "Sección Clima Laboral integrada en sidebar y flujo SPA"
+    - "Dashboard del empleado con métricas operativas del periodo"
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
@@ -295,3 +335,5 @@ agent_communication:
     message: "✅ BACKEND TESTING COMPLETE - ALL TESTS PASSED (21/21 total tests). Fixed 1 critical bug: MongoDB ObjectId serialization in POST /api/clima-laboral/templates and POST /api/clima-laboral/surveys (added .pop('_id') before returning documents). Auth fully working: login bug FIXED, tested 5 users successfully, concurrent auth working. Clima Laboral APIs fully functional: templates CRUD working, surveys with meta fields working (meta_participacion, meta_satisfaccion), survey responses working, results endpoint returning correct global_index, status, department breakdown, and stats. Permissions working (employees correctly denied 403 for create operations). Backend ready for production."
   - agent: "main"
     message: "Aplicado feedback visual de resultados en Clima Laboral: se incorporaron tabs 'Resumen General', 'Por Pregunta', 'Participación' y 'Vista Resultado'; además se agregó selector de departamento y conmutador para ver 'Resumen por departamento' o 'Respuestas por departamento'. Verificado manualmente con screenshots (incluyendo caso real con departamento Desarrollo)."
+  - agent: "main"
+    message: "Atendido nuevo feedback visual y funcional: Vista Resultado ahora muestra tabla tipo Excel (Num. encuesta x P1..Pn) con leyenda <=3 rojo y >3 verde, fila de promedio por pregunta y filtrado por departamento. El selector de departamento impacta todas las tabs al usar resultado visible filtrado. En Resumen General se agregó bloque de Áreas de Atención y se ajustaron colores de rangos a Rojo/Amarillo/Verde/Azul. Además se rediseñó el dashboard de empleado con métricas de comisiones/bonos, días trabajados, descuentos/retardos, actividades, vacaciones y módulos extra de objetivos/recordatorios."
