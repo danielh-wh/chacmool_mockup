@@ -511,3 +511,87 @@ export const empleadoAAPI = {
   }
 };
 
+
+
+const parseClimaResponse = async (response, fallbackMessage) => {
+  const payload = await response.json().catch(() => null);
+
+  if (!response.ok || payload?.ok === false) {
+    throw new Error(payload?.error || payload?.detail || fallbackMessage);
+  }
+
+  return payload;
+};
+
+// Clima Laboral API
+export const climateAPI = {
+  getSurveys: async () => {
+    const response = await fetch(`${API_URL}/api/clima-laboral/surveys`, {
+      headers: getAuthHeaders()
+    });
+    return parseClimaResponse(response, 'No se pudieron cargar las encuestas');
+  },
+
+  getPendingSurveys: async () => {
+    const response = await fetch(`${API_URL}/api/clima-laboral/pending`, {
+      headers: getAuthHeaders()
+    });
+    return parseClimaResponse(response, 'No se pudieron cargar las encuestas pendientes');
+  },
+
+  createSurvey: async (data) => {
+    const response = await fetch(`${API_URL}/api/clima-laboral/surveys`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data)
+    });
+    return parseClimaResponse(response, 'No se pudo crear la encuesta');
+  },
+
+  submitSurveyResponse: async (surveyId, data) => {
+    const response = await fetch(`${API_URL}/api/clima-laboral/surveys/${surveyId}/respond`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data)
+    });
+    return parseClimaResponse(response, 'No se pudo enviar la encuesta');
+  },
+
+  getSurveyResults: async (surveyId) => {
+    const response = await fetch(`${API_URL}/api/clima-laboral/surveys/${surveyId}/results`, {
+      headers: getAuthHeaders()
+    });
+    return parseClimaResponse(response, 'No se pudieron cargar los resultados');
+  },
+
+  getTemplates: async () => {
+    const response = await fetch(`${API_URL}/api/clima-laboral/templates`, {
+      headers: getAuthHeaders()
+    });
+    return parseClimaResponse(response, 'No se pudieron cargar las plantillas');
+  },
+
+  getTemplate: async (templateId) => {
+    const response = await fetch(`${API_URL}/api/clima-laboral/templates/${templateId}`, {
+      headers: getAuthHeaders()
+    });
+    return parseClimaResponse(response, 'No se pudo cargar la plantilla');
+  },
+
+  createTemplate: async (data) => {
+    const response = await fetch(`${API_URL}/api/clima-laboral/templates`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data)
+    });
+    return parseClimaResponse(response, 'No se pudo crear la plantilla');
+  },
+
+  deleteTemplate: async (templateId) => {
+    const response = await fetch(`${API_URL}/api/clima-laboral/templates/${templateId}`, {
+      method: 'DELETE',
+      headers: getAuthHeaders()
+    });
+    return parseClimaResponse(response, 'No se pudo eliminar la plantilla');
+  }
+};

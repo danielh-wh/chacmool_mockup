@@ -9,6 +9,7 @@ import EmpleadoAPage from './pages/EmpleadoA';
 import KPIsView from './pages/KPIsView';
 import Evaluations360View from './pages/Evaluations360View';
 import PDIView from './pages/PDIView';
+import ClimaLaboralView from './pages/ClimaLaboralView';
 import EmployeeProfile from './pages/EmployeeProfile';
 import { 
   Users, 
@@ -986,6 +987,7 @@ const Sidebar = ({ isAdmin, setIsAdmin }) => {
     { path: "/pdi", icon: Target, label: "PDI", description: "Plan de Desarrollo", roles: ['admin'] },
     { path: "/aciertos-desaciertos", icon: ClipboardList, label: "Aciertos y Desaciertos", description: "Evaluación bilateral", roles: ['admin'] },
     { path: "/kpis", icon: Target, label: "KPIs", description: "Indicadores clave", roles: ['admin'] },
+    { path: "/clima-laboral", icon: Activity, label: "Clima Laboral", description: "Encuestas de satisfacción", roles: ['admin', 'empleado'] },
   ];
   
   // Filtrar navItems basado en el rol del usuario
@@ -1497,6 +1499,7 @@ const AppContent = () => {
             <Route path="/pdi" element={<PDIView isAdmin={isAdmin} />} />
             <Route path="/aciertos-desaciertos" element={<AciertosDesaciertosView isAdmin={isAdmin} />} />
             <Route path="/kpis" element={<KPIsView isAdmin={isAdmin} />} />
+            <Route path="/clima-laboral" element={<ClimaLaboralView isAdmin={isAdmin} />} />
             <Route path="/my-profile" element={<MyProfileResultsView isAdmin={isAdmin} />} />
             <Route path="/manual-eval" element={<ManualEvaluation />} />
             <Route path="/perfil/:employeeId" element={<EmployeeProfile />} />

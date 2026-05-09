@@ -195,7 +195,7 @@ frontend:
     file: "/app/frontend/src/contexts/AuthContext.jsx"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: false
         agent: "user"
@@ -203,6 +203,21 @@ frontend:
       - working: true
         agent: "main"
         comment: "Reproducido en /login. Ajustado manejo de respuesta en AuthContext para parseo seguro (evita doble consumo de stream) y mensajes de error robustos. Verificado visualmente: credencial inválida muestra 'Credenciales inválidas' y credencial válida permite entrar."
+      - working: true
+        agent: "testing"
+        comment: "✅ VERIFIED FIXED: Backend auth fully functional. Tested multiple sequential logins with 5 different users - all successful without any 'body consumed' errors. POST /api/auth/login working correctly with proper token generation. The issue was backend-related (empty users collection + frontend error handling), both now resolved. Login flow working end-to-end."
+
+  - task: "Sección Clima Laboral integrada en sidebar y flujo SPA"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/pages/ClimaLaboralView.jsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: true
+        agent: "main"
+        comment: "Nueva sección /clima-laboral con vistas Dashboard, Crear Encuesta (incluye metas y auto-carga de primera plantilla), Responder, Resultados (gauge/meta/participación/estándares/análisis) y Biblioteca de Plantillas. Estilo alineado con el proyecto actual y toasts con sonner."
 
 backend:
   - task: "Backend FastAPI (INACTIVO)"
@@ -223,7 +238,7 @@ backend:
     file: "/app/backend/seed.py"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: false
         agent: "main"
@@ -231,17 +246,34 @@ backend:
       - working: true
         agent: "main"
         comment: "Ejecutado seed.py para poblar usuarios demo y datos base. Login válido funcionando con maria@empresa.com / maria123."
+      - working: true
+        agent: "testing"
+        comment: "✅ VERIFIED: Tested login with 5 different users (admin@empresa.com, maria@empresa.com, juan@empresa.com, laura@empresa.com, carlos@empresa.com). All logins successful. Auth endpoints working correctly: POST /api/auth/login returns access_token and user data, GET /api/auth/me returns correct user info. Invalid credentials correctly rejected with 401. Concurrent auth operations working without state issues."
+
+  - task: "APIs de Clima Laboral con metas, plantillas y resultados"
+    implemented: true
+    working: true
+    file: "/app/backend/routes/clima_laboral.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "main"
+        comment: "Implementados endpoints /api/clima-laboral para encuestas, respuestas, resultados, plantillas y pendientes. Incluye cálculo de global_index, estado de salud, análisis por pregunta y resumen por departamento, más campos meta_participacion/meta_satisfaccion."
+      - working: true
+        agent: "testing"
+        comment: "✅ ALL TESTS PASSED (17/17): Fixed critical MongoDB ObjectId serialization bug in POST templates and surveys (added .pop('_id') before returning). Verified: GET /api/clima-laboral/templates (working), POST /api/clima-laboral/templates (working, creates templates with questions), POST /api/clima-laboral/surveys (working with meta_participacion=80 and meta_satisfaccion=75), GET /api/clima-laboral/surveys (working, returns all surveys), POST /api/clima-laboral/surveys/{id}/respond (working, accepts responses), GET /api/clima-laboral/surveys/{id}/results (working, returns global_index=85.0, status='Saludable', meta fields, por_departamento breakdown with Desarrollo dept, stats for 4 questions, participantes list). Edge cases tested: meta_participacion=0, meta values=100, employee permissions (403 for create operations). All calculations and data structures correct."
 
 metadata:
   created_by: "main_agent"
   version: "1.0"
-  test_sequence: 2
+  test_sequence: 4
   run_ui: true
 
 test_plan:
   current_focus:
-    - "Login muestra error de body consumed y no permite acceso"
-    - "Datos demo de autenticación en MongoDB"
+    - "Sección Clima Laboral integrada en sidebar y flujo SPA"
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
@@ -251,3 +283,7 @@ agent_communication:
     message: "Implementadas TODAS las correcciones del feedback del usuario (Mensaje 120). Cambios realizados: 1) Título 'Empleado A' reemplaza 'Matriz 9-Box' (NO reemplaza 'Jugador A' en categorías), 2) Porcentajes dentro de celdas 9-box, 3) Vista perfil+resultados fusionada con comparación de categoría calculada vs autoevaluación, 4) UI completa para asignación y evaluación de KPIs con pestañas, 5) Contadores de evaluadores con lógica Admin/Empleado. Frontend compila exitosamente. Screenshots preliminares muestran todo funcionando correctamente. Requiere testing completo de UI."
   - agent: "main"
     message: "Bug login reportado por usuario reproducido: 'Response.json: Body has already been consumed'. Root cause detectada: users en MongoDB estaba vacío (401 en /api/auth/login) y manejo de error frontend no robusto ante stream ya leído. Acciones: 1) ejecutado /app/backend/seed.py para cargar credenciales demo, 2) mejorado parseo seguro de respuestas en AuthContext para evitar error de stream consumido y mostrar mensaje de credenciales inválidas. Requiere testing backend auth."
+  - agent: "main"
+    message: "Se implementó módulo Clima Laboral end-to-end en stack actual: backend (nuevas rutas /api/clima-laboral + cálculos de satisfacción/meta/participación/departamento + plantillas) y frontend (nueva vista /clima-laboral integrada a sidebar con flujos dashboard/crear/responder/resultados/plantillas, auto-carga de primera plantilla y visuales de resultados con gauge/progreso/participación). Pendiente validación de backend con testing agent según protocolo."
+  - agent: "testing"
+    message: "✅ BACKEND TESTING COMPLETE - ALL TESTS PASSED (21/21 total tests). Fixed 1 critical bug: MongoDB ObjectId serialization in POST /api/clima-laboral/templates and POST /api/clima-laboral/surveys (added .pop('_id') before returning documents). Auth fully working: login bug FIXED, tested 5 users successfully, concurrent auth working. Clima Laboral APIs fully functional: templates CRUD working, surveys with meta fields working (meta_participacion, meta_satisfaccion), survey responses working, results endpoint returning correct global_index, status, department breakdown, and stats. Permissions working (employees correctly denied 403 for create operations). Backend ready for production."
