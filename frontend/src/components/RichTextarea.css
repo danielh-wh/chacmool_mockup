@@ -1,0 +1,54 @@
+/* CKEditor styles override — make it match our minimal design system. */
+.rich-textarea .ck.ck-editor__main > .ck-editor__editable {
+  min-height: var(--rt-min-h, 110px);
+  border: 1px solid #e2e8f0;
+  border-top: 0;
+  border-bottom-left-radius: 8px;
+  border-bottom-right-radius: 8px;
+  padding: 10px 12px;
+  font-size: 14px;
+  line-height: 1.55;
+  color: #0f172a;
+  background: #ffffff;
+}
+
+.rich-textarea .ck.ck-toolbar {
+  border: 1px solid #e2e8f0;
+  border-bottom: 0;
+  border-top-left-radius: 8px;
+  border-top-right-radius: 8px;
+  background: #f8fafc;
+}
+
+.rich-textarea .ck.ck-editor__editable.ck-focused:not(.ck-read-only) {
+  border-color: #cbd5e1;
+  box-shadow: 0 0 0 3px rgba(148, 163, 184, 0.15);
+}
+
+.rich-textarea .ck-content ul,
+.rich-textarea .ck-content ol {
+  padding-left: 22px;
+  margin: 6px 0;
+}
+
+.rich-textarea .ck-content p {
+  margin: 4px 0;
+}
+
+.rich-textarea .ck-content h2 {
+  font-size: 16px;
+  font-weight: 700;
+  margin: 10px 0 6px;
+}
+
+.rich-textarea .ck-content h3 {
+  font-size: 14px;
+  font-weight: 700;
+  margin: 8px 0 4px;
+}
+
+/* Subtle placeholder styling */
+.rich-textarea .ck.ck-editor__editable .ck-placeholder::before {
+  color: #94a3b8;
+  font-style: normal;
+}

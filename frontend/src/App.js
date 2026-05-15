@@ -11,6 +11,10 @@ import Evaluations360View from './pages/Evaluations360View';
 import PDIView from './pages/PDIView';
 import ClimaLaboralView from './pages/ClimaLaboralView';
 import EmployeeProfile from './pages/EmployeeProfile';
+import JobProfiles from './pages/JobProfiles';
+import JobProfilesV2 from './pages/JobProfilesV2';
+import CompanySettings from './pages/CompanySettings';
+import { CompanyValuesProvider } from './contexts/CompanyValuesContext';
 import { 
   Users, 
   Target, 
@@ -983,11 +987,17 @@ const Sidebar = ({ isAdmin, setIsAdmin }) => {
     { path: `/perfil/${user?.employee_id || '1'}`, icon: User, label: "Mi Perfil", description: "Información personal", roles: ['admin', 'empleado'] },
     { path: "/9box", icon: Grid3X3, label: "Empleado A", description: "Empleados A, B, C", roles: ['admin', 'empleado'] },
     { path: "/employees", icon: Users, label: "Empleados", description: "Gestión de personal", roles: ['admin'] },
+    { path: "/perfiles-puesto", icon: Briefcase, label: "Perfiles de Puesto", description: "Catálogo de descripciones", roles: ['admin'] },
+    { path: "/perfiles-puesto-v2", icon: Briefcase, label: "Perfiles V2", description: "Edición tipo Excel", roles: ['admin'], badge: "V2" },
     { path: "/evaluations", icon: MessageSquare, label: "Evaluaciones 360", description: "Plantillas y enlaces", roles: ['admin', 'empleado'] },
     { path: "/pdi", icon: Target, label: "PDI", description: "Plan de Desarrollo", roles: ['admin'] },
     { path: "/aciertos-desaciertos", icon: ClipboardList, label: "Aciertos y Desaciertos", description: "Evaluación bilateral", roles: ['admin'] },
     { path: "/kpis", icon: Target, label: "KPIs", description: "Indicadores clave", roles: ['admin'] },
+<<<<<<< HEAD
     { path: "/clima-laboral", icon: Activity, label: "Clima Laboral", description: "Encuestas de satisfacción", roles: ['admin', 'empleado'] },
+=======
+    { path: "/configuracion", icon: Settings, label: "Configuración", description: "Valores de empresa", roles: ['admin'] },
+>>>>>>> origin/conflict_150526_1026
   ];
   
   // Filtrar navItems basado en el rol del usuario
@@ -1036,7 +1046,14 @@ const Sidebar = ({ isAdmin, setIsAdmin }) => {
               >
                 <item.icon className="w-5 h-5" />
                 <div className="flex-1">
-                  <span className="block">{item.label}</span>
+                  <span className="flex items-center gap-1.5">
+                    {item.label}
+                    {item.badge && (
+                      <span className="px-1.5 py-0.5 bg-slate-900 text-white text-[9px] font-bold rounded tracking-wider leading-none">
+                        {item.badge}
+                      </span>
+                    )}
+                  </span>
                   <span className="text-xs text-slate-400">{item.description}</span>
                 </div>
               </NavLink>
@@ -1289,86 +1306,690 @@ const MyProfileResultsView = ({ isAdmin }) => {
 // Dashboard ahora está en /pages/Dashboard.jsx
 // ============================================
 
+// --- Helpers visuales para EmployeeList ---
+const EmpStatCard = ({ icon: Icon, label, value, accent }) => {
+  const palette = {
+    slate: { iconBg: "bg-slate-900", iconColor: "text-white" },
+    green: { iconBg: "bg-emerald-500", iconColor: "text-white" },
+    red: { iconBg: "bg-rose-500", iconColor: "text-white" },
+    blue: { iconBg: "bg-blue-500", iconColor: "text-white" },
+  };
+  const c = palette[accent] || palette.slate;
+  return (
+    <div className="bg-white border border-slate-200 rounded-2xl p-4 flex items-center gap-3">
+      <div className={`w-10 h-10 rounded-xl ${c.iconBg} flex items-center justify-center flex-shrink-0`}>
+        <Icon className={`w-5 h-5 ${c.iconColor}`} />
+      </div>
+      <div>
+        <p className="text-[11px] text-slate-500 font-medium uppercase tracking-wider">{label}</p>
+        <p className="text-2xl font-semibold text-slate-900 leading-none mt-1" style={{ fontFamily: 'Outfit' }}>{value}</p>
+      </div>
+    </div>
+  );
+};
+
+const EmpMetric = ({ label, value, tone }) => {
+  const palette = {
+    purple: { text: "text-purple-700", bar: "bg-purple-500", track: "bg-purple-100" },
+    blue: { text: "text-blue-700", bar: "bg-blue-500", track: "bg-blue-100" },
+  };
+  const c = palette[tone];
+  return (
+    <div>
+      <div className="flex items-center justify-between text-xs mb-1">
+        <span className="text-slate-500">{label}</span>
+        <span className={`font-semibold ${c.text}`}>{value}%</span>
+      </div>
+      <div className={`h-1.5 rounded-full overflow-hidden ${c.track}`}>
+        <div className={`h-full ${c.bar} rounded-full transition-all duration-500`} style={{ width: `${value}%` }} />
+      </div>
+    </div>
+  );
+};
+
+const EmpDeptPill = ({ dept }) => {
+  if (!dept) return null;
+  return (
+    <div
+      className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-xs font-medium"
+      style={{ backgroundColor: `${dept.color}15`, color: dept.color }}
+    >
+      <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: dept.color }} />
+      {dept.name}
+    </div>
+  );
+};
+
+// =====================================================================
+// EMPLOYEE WORK INFO (deterministic mock — Sesame-style horario / horas hoy)
+// =====================================================================
+const STATUS_OPTIONS = [
+  { id: "activo",   label: "Activo",  color: "#10b981" },
+  { id: "remoto",   label: "Remoto",  color: "#3b82f6" },
+  { id: "ausente",  label: "Fuera",   color: "#94a3b8" },
+  { id: "nuevo",    label: "Nuevo",   color: "#a855f7" },
+];
+
+const HORARIO_PRESETS = [
+  { label: "09:00 - 18:00", weekly: "40h semana" },
+  { label: "08:00 - 17:00", weekly: "40h semana" },
+  { label: "10:00 - 19:00", weekly: "40h semana" },
+  { label: "07:30 - 15:30", weekly: "35h semana" },
+  { label: "Horario libre", weekly: "—" },
+  { label: "Sin horario",   weekly: "—" },
+];
+
+const stableHash = (s) => {
+  let h = 0;
+  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0;
+  return Math.abs(h);
+};
+
+const getWorkInfo = (emp) => {
+  const h = stableHash(emp.id);
+  const status = STATUS_OPTIONS[h % STATUS_OPTIONS.length];
+  const horario = HORARIO_PRESETS[(h >> 3) % HORARIO_PRESETS.length];
+  // Horas trabajadas hoy: derivadas para que sean consistentes pero variadas.
+  let horasMin = 0;
+  if (status.id === "ausente" || horario.label === "Sin horario") {
+    horasMin = 0;
+  } else if (horario.label === "Horario libre") {
+    horasMin = (h % 4) * 60 + ((h >> 2) % 60); // 0–4h
+  } else {
+    horasMin = 4 * 60 + (h % 5) * 60 + ((h >> 4) % 60); // 4–9h
+  }
+  const horasHoy = `${Math.floor(horasMin / 60)}h ${String(horasMin % 60).padStart(2, "0")}min`;
+  // Cómputo: % del horario completado hoy.
+  const target = horario.label === "Horario libre" ? 4 * 60 : horario.label === "Sin horario" ? 0 : 8 * 60;
+  const computado = target ? Math.min(100, Math.round((horasMin / target) * 100)) : 0;
+  // Email + teléfono deterministas a partir del nombre.
+  const slug = emp.name
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .split(" ")
+    .slice(0, 2)
+    .join(".");
+  const email = `${slug}@empresa.com`;
+  const phone = `+52 55 ${String(1000 + (h % 9000)).padStart(4, "0")} ${String(1000 + ((h >> 5) % 9000)).padStart(4, "0")}`;
+  return { status, horario, horasHoy, horasMin, computado, target, email, phone };
+};
+
+// =====================================================================
+// COLUMN REGISTRY (Sesame-style chooser)
+// =====================================================================
+const ALL_COLUMNS = [
+  {
+    id: "empleado",
+    label: "Empleado",
+    group: "principales",
+    locked: true, // siempre visible
+    width: "minmax(260px,2.2fr)",
+    render: (emp, { work }) => (
+      <div className="flex items-center gap-3 min-w-0">
+        <div className="relative flex-shrink-0">
+          <img
+            src={emp.avatar}
+            alt={emp.name}
+            className="w-11 h-11 rounded-full object-cover ring-2 ring-white shadow-[0_0_0_1px_rgba(15,23,42,0.08)]"
+            onError={(e) => { e.target.src = `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(emp.name)}`; }}
+          />
+          <span
+            className="absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-white"
+            style={{ backgroundColor: work.status.color }}
+            title={work.status.label}
+          />
+        </div>
+        <div className="min-w-0">
+          <p className="font-semibold text-slate-900 truncate leading-tight">{emp.name}</p>
+          <p className="text-xs text-slate-500 truncate mt-0.5">{emp.position}</p>
+        </div>
+      </div>
+    ),
+  },
+  {
+    id: "estado",
+    label: "Estado",
+    group: "laborales",
+    width: "minmax(120px,140px)",
+    render: (_emp, { work }) => (
+      <span className="inline-flex items-center gap-2 text-sm text-slate-700">
+        <span className="w-2 h-2 rounded-full" style={{ backgroundColor: work.status.color }} />
+        {work.status.label}
+      </span>
+    ),
+  },
+  {
+    id: "departamento",
+    label: "Departamento",
+    group: "laborales",
+    width: "minmax(140px,1fr)",
+    render: (_emp, { dept }) => <EmpDeptPill dept={dept} />,
+  },
+  {
+    id: "horario",
+    label: "Horario",
+    group: "tiempo",
+    width: "minmax(150px,1fr)",
+    render: (_emp, { work }) => (
+      <div className="text-sm text-slate-700 leading-tight">
+        <div className="font-medium">{work.horario.label}</div>
+        <div className="text-xs text-slate-400">{work.horario.weekly}</div>
+      </div>
+    ),
+  },
+  {
+    id: "horasHoy",
+    label: "Horas hoy",
+    group: "tiempo",
+    width: "minmax(160px,1.2fr)",
+    render: (_emp, { work }) => (
+      <div className="min-w-0">
+        <div className={`text-sm font-medium tabular-nums ${work.horasMin > 0 ? "text-emerald-700" : "text-slate-400"}`}>
+          {work.horasHoy}
+        </div>
+        {work.target > 0 && (
+          <div className="h-1 rounded-full bg-emerald-100 mt-1 overflow-hidden">
+            <div className="h-full bg-emerald-500 rounded-full" style={{ width: `${work.computado}%` }} />
+          </div>
+        )}
+      </div>
+    ),
+  },
+  {
+    id: "computado",
+    label: "% Computado",
+    group: "tiempo",
+    width: "minmax(100px,120px)",
+    render: (_emp, { work }) => (
+      <span className="text-sm font-medium text-slate-700 tabular-nums">{work.computado}%</span>
+    ),
+  },
+  {
+    id: "valores",
+    label: "Valores",
+    group: "evaluacion",
+    width: "minmax(160px,1.2fr)",
+    render: (emp) => (
+      <div className="flex items-center gap-3 min-w-0">
+        <div className="flex-1 h-1.5 rounded-full bg-purple-100 overflow-hidden">
+          <div className="h-full bg-purple-500 rounded-full" style={{ width: `${emp.valoresScore}%` }} />
+        </div>
+        <span className="text-sm font-semibold text-purple-700 tabular-nums w-10 text-right">{emp.valoresScore}%</span>
+      </div>
+    ),
+  },
+  {
+    id: "resultados",
+    label: "Resultados",
+    group: "evaluacion",
+    width: "minmax(160px,1.2fr)",
+    render: (emp) => (
+      <div className="flex items-center gap-3 min-w-0">
+        <div className="flex-1 h-1.5 rounded-full bg-blue-100 overflow-hidden">
+          <div className="h-full bg-blue-500 rounded-full" style={{ width: `${emp.resultadosScore}%` }} />
+        </div>
+        <span className="text-sm font-semibold text-blue-700 tabular-nums w-10 text-right">{emp.resultadosScore}%</span>
+      </div>
+    ),
+  },
+  {
+    id: "clasificacion",
+    label: "Clasif.",
+    group: "evaluacion",
+    width: "80px",
+    headerAlign: "text-center",
+    cellClass: "flex justify-center",
+    render: (emp) => {
+      const c = getClassification(emp.valoresScore, emp.resultadosScore);
+      const colors = classificationColors[c.color];
+      return (
+        <span
+          className="inline-flex items-center justify-center px-3 py-1 rounded-lg font-bold text-sm min-w-[44px]"
+          style={{ backgroundColor: colors.bg, color: colors.text, border: `1px solid ${colors.border}` }}
+          title={c.label}
+        >
+          {c.code}
+        </span>
+      );
+    },
+  },
+  {
+    id: "evaluadores",
+    label: "Evaluadores",
+    group: "evaluacion",
+    width: "minmax(110px,130px)",
+    render: (emp) => {
+      const total = Object.values(emp.evaluatorCounts).reduce((a, b) => a + b, 0);
+      return (
+        <span className="inline-flex items-center gap-1 text-sm text-slate-600 tabular-nums">
+          <Users className="w-3.5 h-3.5 text-slate-400" />
+          {total}
+        </span>
+      );
+    },
+  },
+  {
+    id: "email",
+    label: "Email",
+    group: "personales",
+    width: "minmax(180px,1.4fr)",
+    render: (_emp, { work }) => (
+      <span className="text-sm text-slate-600 truncate block">{work.email}</span>
+    ),
+  },
+  {
+    id: "telefono",
+    label: "Teléfono",
+    group: "personales",
+    width: "minmax(150px,160px)",
+    render: (_emp, { work }) => <span className="text-sm text-slate-600 tabular-nums">{work.phone}</span>,
+  },
+];
+
+const COLUMN_GROUPS = [
+  { id: "principales", label: "Principales" },
+  { id: "laborales",   label: "Laborales" },
+  { id: "tiempo",      label: "Tiempo / Horario" },
+  { id: "evaluacion",  label: "Evaluación" },
+  { id: "personales",  label: "Personales" },
+];
+
+const DEFAULT_VISIBLE_COLUMNS = [
+  "empleado", "estado", "departamento", "horario", "horasHoy", "valores", "resultados", "clasificacion",
+];
+
+const COLUMNS_STORAGE_KEY = "evalpro:empColumns:v1";
+
+// =====================================================================
+// COLUMNS PANEL (slide-over)
+// =====================================================================
+const ColumnsPanel = ({ open, onClose, visible, onChange }) => {
+  const [draft, setDraft] = useState(visible);
+  useEffect(() => { if (open) setDraft(visible); }, [open, visible]);
+
+  const toggle = (id) =>
+    setDraft((d) => (d.includes(id) ? d.filter((x) => x !== id) : [...d, id]));
+
+  if (!open) return null;
+  return (
+    <div className="fixed inset-0 z-50 flex" data-testid="columns-panel">
+      <div className="flex-1 bg-slate-900/30 backdrop-blur-[1px]" onClick={onClose} />
+      <aside className="w-full max-w-md bg-white shadow-2xl flex flex-col animate-slide-in-right">
+        <header className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
+          <div>
+            <h3 className="text-sm font-semibold text-slate-900">Columnas visibles</h3>
+            <p className="text-xs text-slate-500 mt-0.5">Elige qué información mostrar en la tabla.</p>
+          </div>
+          <button onClick={onClose} className="p-1.5 hover:bg-slate-100 rounded-lg" aria-label="Cerrar">
+            <X className="w-5 h-5 text-slate-500" />
+          </button>
+        </header>
+
+        <div className="flex-1 overflow-y-auto px-5 py-4 space-y-6">
+          {COLUMN_GROUPS.map((g) => {
+            const groupCols = ALL_COLUMNS.filter((c) => c.group === g.id);
+            if (!groupCols.length) return null;
+            return (
+              <section key={g.id}>
+                <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">{g.label}</h4>
+                <div className="space-y-1">
+                  {groupCols.map((c) => {
+                    const checked = draft.includes(c.id);
+                    return (
+                      <label
+                        key={c.id}
+                        className={`flex items-center gap-3 px-2.5 py-2 rounded-lg cursor-pointer transition-colors ${
+                          c.locked ? "opacity-60 cursor-not-allowed" : "hover:bg-slate-50"
+                        }`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          disabled={c.locked}
+                          onChange={() => !c.locked && toggle(c.id)}
+                          className="w-4 h-4 rounded border-slate-300 text-slate-900 focus:ring-slate-300"
+                        />
+                        <span className="text-sm text-slate-800 flex-1">{c.label}</span>
+                        {c.locked && <span className="text-[10px] text-slate-400 uppercase tracking-wider">Fijo</span>}
+                      </label>
+                    );
+                  })}
+                </div>
+              </section>
+            );
+          })}
+        </div>
+
+        <footer className="px-5 py-3 border-t border-slate-100 flex items-center justify-between gap-2">
+          <button
+            onClick={() => setDraft(DEFAULT_VISIBLE_COLUMNS)}
+            className="text-sm text-slate-500 hover:text-slate-900 px-2 py-1.5"
+          >
+            Restaurar default
+          </button>
+          <div className="flex items-center gap-2">
+            <button onClick={onClose} className="px-3 py-1.5 text-sm text-slate-600 hover:text-slate-900">
+              Cancelar
+            </button>
+            <button
+              onClick={() => { onChange(draft); onClose(); }}
+              className="text-white text-sm font-semibold px-4 py-1.5 rounded-lg hover:opacity-90"
+              style={{ backgroundColor: "#153d63" }}
+              data-testid="apply-columns-btn"
+            >
+              Aplicar
+            </button>
+          </div>
+        </footer>
+      </aside>
+    </div>
+  );
+};
+
+const EmployeeCard = ({ emp, onClick }) => {
+  const classification = getClassification(emp.valoresScore, emp.resultadosScore);
+  const colors = classificationColors[classification.color];
+  const dept = mockDepartments.find((d) => d.id === emp.departmentId);
+  const totalEvaluators = Object.values(emp.evaluatorCounts).reduce((a, b) => a + b, 0);
+
+  return (
+    <button
+      onClick={onClick}
+      className="group text-left bg-white border border-slate-200 rounded-2xl p-5 transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5 hover:border-slate-300"
+    >
+      <div className="flex items-start justify-between mb-4">
+        <div className="relative">
+          <span
+            aria-hidden
+            className="absolute -inset-0.5 rounded-full blur-sm opacity-40"
+            style={{ backgroundColor: colors.border }}
+          />
+          <img
+            src={emp.avatar}
+            alt={emp.name}
+            className="relative w-14 h-14 rounded-full ring-2 ring-white object-cover"
+            onError={(e) => { e.target.src = `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(emp.name)}`; }}
+          />
+        </div>
+        <span
+          className="px-2.5 py-1 rounded-lg font-bold text-xs tracking-wide"
+          style={{ backgroundColor: colors.bg, color: colors.text, border: `1px solid ${colors.border}` }}
+          title={classification.label}
+        >
+          {classification.code}
+        </span>
+      </div>
+
+      <h3 className="font-semibold text-slate-900 truncate" title={emp.name}>
+        {emp.name}
+      </h3>
+      <p className="text-sm text-slate-500 truncate mb-3">{emp.position}</p>
+
+      <div className="mb-4">
+        <EmpDeptPill dept={dept} />
+      </div>
+
+      <div className="space-y-2 mb-4">
+        <EmpMetric label="Valores" value={emp.valoresScore} tone="purple" />
+        <EmpMetric label="Resultados" value={emp.resultadosScore} tone="blue" />
+      </div>
+
+      <div className="flex items-center justify-between pt-3 border-t border-slate-100">
+        <span className="text-xs text-slate-500 flex items-center gap-1.5">
+          <Users className="w-3.5 h-3.5" />
+          {totalEvaluators} {totalEvaluators === 1 ? "evaluador" : "evaluadores"}
+        </span>
+        <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-slate-600 group-hover:translate-x-0.5 transition-all" />
+      </div>
+    </button>
+  );
+};
+
+const EmployeeTable = ({ employees, onSelect, columns }) => {
+  // Each column carries its own header and renderer, so the table layout is
+  // fully driven by the user's selection from ColumnsPanel.
+  const gridTemplate = useMemo(
+    () =>
+      [
+        ...columns.map((c) => c.width || "minmax(140px,1fr)"),
+        "100px", // actions column
+      ].join(" "),
+    [columns],
+  );
+
+  return (
+    <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden">
+      <div className="overflow-x-auto">
+        {/* Headers */}
+        <div
+          className="hidden lg:grid items-center gap-6 px-6 py-3 bg-slate-50 border-b border-slate-200"
+          style={{ gridTemplateColumns: gridTemplate, minWidth: "max-content" }}
+        >
+          {columns.map((c) => (
+            <span
+              key={c.id}
+              className={`text-[11px] font-semibold text-slate-500 uppercase tracking-wider ${c.headerAlign || ""}`}
+            >
+              {c.label}
+            </span>
+          ))}
+          <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider text-right">
+            Acciones
+          </span>
+        </div>
+
+        <div className="divide-y divide-slate-100">
+          {employees.map((emp) => {
+            const dept = mockDepartments.find((d) => d.id === emp.departmentId);
+            const work = getWorkInfo(emp);
+            return (
+              <div
+                key={emp.id}
+                onClick={() => onSelect(emp)}
+                className="group relative grid items-center gap-4 lg:gap-6 px-6 py-4 hover:bg-slate-50/70 cursor-pointer transition-colors grid-cols-1 lg:grid-cols-none"
+                style={{ gridTemplateColumns: gridTemplate, minWidth: "max-content" }}
+              >
+                <span
+                  aria-hidden
+                  className="absolute left-0 top-2 bottom-2 w-1 rounded-r-full opacity-0 group-hover:opacity-100 transition-opacity"
+                  style={{ backgroundColor: dept?.color || "#94a3b8" }}
+                />
+                {columns.map((c) => (
+                  <div key={c.id} className={c.cellClass || "min-w-0"}>
+                    {c.render(emp, { dept, work })}
+                  </div>
+                ))}
+                {/* Acciones column */}
+                <div className="flex items-center gap-1 justify-self-end">
+                  <button
+                    onClick={(e) => { e.stopPropagation(); onSelect(emp); }}
+                    className="p-2 rounded-lg text-slate-400 hover:text-slate-900 hover:bg-slate-100 transition-all"
+                    title="Ver perfil"
+                  >
+                    <ChevronRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const EmployeeList = ({ isAdmin }) => {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
-  const filteredEmployees = mockEmployees.filter(emp => emp.name.toLowerCase().includes(searchTerm.toLowerCase()));
+  const [selectedDept, setSelectedDept] = useState("all");
+  const [columnsPanelOpen, setColumnsPanelOpen] = useState(false);
+  const [visibleColumnIds, setVisibleColumnIds] = useState(() => {
+    try {
+      const raw = localStorage.getItem(COLUMNS_STORAGE_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed) && parsed.length) return parsed;
+      }
+    } catch (e) {}
+    return DEFAULT_VISIBLE_COLUMNS;
+  });
+
+  useEffect(() => {
+    try { localStorage.setItem(COLUMNS_STORAGE_KEY, JSON.stringify(visibleColumnIds)); } catch (e) {}
+  }, [visibleColumnIds]);
+
+  // Resolve column objects + always force "empleado" first.
+  const columns = useMemo(() => {
+    const ids = ["empleado", ...visibleColumnIds.filter((id) => id !== "empleado")];
+    return ids
+      .map((id) => ALL_COLUMNS.find((c) => c.id === id))
+      .filter(Boolean);
+  }, [visibleColumnIds]);
+
+  const filteredEmployees = useMemo(() => {
+    const q = searchTerm.trim().toLowerCase();
+    return mockEmployees.filter((emp) => {
+      const matchesSearch =
+        !q ||
+        emp.name.toLowerCase().includes(q) ||
+        emp.position.toLowerCase().includes(q) ||
+        emp.department.toLowerCase().includes(q);
+      const matchesDept = selectedDept === "all" || emp.departmentId === selectedDept;
+      return matchesSearch && matchesDept;
+    });
+  }, [searchTerm, selectedDept]);
+
+  const stats = useMemo(() => {
+    const total = mockEmployees.length;
+    const empA = mockEmployees.filter((e) => getClassification(e.valoresScore, e.resultadosScore).code === "A").length;
+    const empAtt = mockEmployees.filter((e) => {
+      const c = getClassification(e.valoresScore, e.resultadosScore).code;
+      return c.startsWith("C");
+    }).length;
+    const numDepts = new Set(mockEmployees.map((e) => e.departmentId)).size;
+    return { total, empA, empAtt, numDepts };
+  }, []);
+
+  const navigateToProfile = (emp) => navigate(`/perfil/${emp.id.replace("EMP-00", "")}`);
 
   return (
     <div className="animate-fade-in">
-      <div className="flex items-center justify-between mb-8">
+      {/* Header */}
+      <div className="flex items-start justify-between mb-6 gap-4 flex-wrap">
         <div>
-          <h1 className="text-3xl font-semibold text-slate-900 tracking-tight" style={{ fontFamily: 'Outfit' }}>Empleados</h1>
-          <p className="text-slate-500 mt-1">Gestión del personal</p>
+          <h1 className="text-3xl font-semibold text-slate-900 tracking-tight" style={{ fontFamily: 'Outfit' }}>
+            Empleados
+          </h1>
+          <p className="text-slate-500 mt-1">
+            {stats.total} miembros del equipo · {stats.numDepts} departamentos
+          </p>
         </div>
-        <button className="bg-slate-900 text-white rounded-xl px-4 py-2.5 font-medium flex items-center gap-2">
-          <Plus className="w-4 h-4" />
-          Agregar
-        </button>
+        {isAdmin && (
+          <button className="bg-slate-900 hover:bg-slate-800 text-white rounded-xl px-4 py-2.5 font-medium flex items-center gap-2 transition-colors shadow-sm">
+            <UserPlus className="w-4 h-4" />
+            Agregar empleado
+          </button>
+        )}
       </div>
 
+      {/* Quick stats */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mb-6">
+        <EmpStatCard icon={Users} label="Total" value={stats.total} accent="slate" />
+        <EmpStatCard icon={Star} label="Empleados A" value={stats.empA} accent="green" />
+        <EmpStatCard icon={AlertTriangle} label="Atención" value={stats.empAtt} accent="red" />
+        <EmpStatCard icon={Building2} label="Departamentos" value={stats.numDepts} accent="blue" />
+      </div>
+
+      {/* Toolbar */}
       <div className="bg-white border border-slate-200 rounded-2xl p-4 mb-6">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-          <input
-            type="text"
-            placeholder="Buscar empleado..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm"
-          />
+        <div className="flex items-center gap-3 flex-wrap">
+          <div className="relative flex-1 min-w-[240px]">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+            <input
+              type="text"
+              placeholder="Buscar por nombre, puesto o departamento..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-slate-200 focus:border-slate-300"
+            />
+          </div>
+          <div className="flex items-center gap-1 ml-auto">
+            <button
+              onClick={() => setColumnsPanelOpen(true)}
+              className="px-3 py-2 rounded-xl flex items-center gap-1.5 text-sm font-medium bg-slate-100 text-slate-700 hover:bg-slate-200 transition-colors"
+              data-testid="open-columns-btn"
+              title="Mostrar / ocultar columnas"
+            >
+              <Settings className="w-4 h-4" />
+              Columnas
+              <span className="text-[10px] text-slate-500 tabular-nums ml-0.5">({columns.length})</span>
+            </button>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2 mt-4 flex-wrap">
+          <button
+            onClick={() => setSelectedDept("all")}
+            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
+              selectedDept === "all"
+                ? "bg-slate-900 text-white"
+                : "bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-200"
+            }`}
+          >
+            Todos
+          </button>
+          {mockDepartments.map((d) => {
+            const active = selectedDept === d.id;
+            return (
+              <button
+                key={d.id}
+                onClick={() => setSelectedDept(d.id)}
+                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all flex items-center gap-1.5 ${
+                  active ? "text-white" : "bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-200"
+                }`}
+                style={active ? { backgroundColor: d.color, borderColor: d.color } : {}}
+              >
+                <span
+                  className="w-2 h-2 rounded-full"
+                  style={{ backgroundColor: active ? "#fff" : d.color }}
+                />
+                {d.name}
+              </button>
+            );
+          })}
         </div>
       </div>
 
-      <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden">
-        <table className="w-full">
-          <thead className="bg-slate-50 border-b border-slate-200">
-            <tr>
-              <th className="text-left text-xs font-semibold text-slate-500 uppercase px-6 py-4">Empleado</th>
-              <th className="text-center text-xs font-semibold text-slate-500 uppercase px-6 py-4">Valores</th>
-              <th className="text-center text-xs font-semibold text-slate-500 uppercase px-6 py-4">Resultados</th>
-              <th className="text-center text-xs font-semibold text-slate-500 uppercase px-6 py-4">Clasificación</th>
-              <th className="text-center text-xs font-semibold text-slate-500 uppercase px-6 py-4">Evaluadores</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100">
-            {filteredEmployees.map((emp) => {
-              const classification = getClassification(emp.valoresScore, emp.resultadosScore);
-              const colors = classificationColors[classification.color];
-              const totalEvaluators = Object.values(emp.evaluatorCounts).reduce((a, b) => a + b, 0);
-              
-              // Extraer ID del empleado (EMP-001 -> 1)
-              const employeeId = emp.id.replace('EMP-00', '');
-              
-              return (
-                <tr 
-                  key={emp.id} 
-                  onClick={() => navigate(`/perfil/${employeeId}`)}
-                  className="hover:bg-slate-50 cursor-pointer transition-colors"
-                >
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-3">
-                      <img src={emp.avatar} alt="" className="w-10 h-10 rounded-full" />
-                      <div>
-                        <p className="font-medium text-slate-900">{emp.name}</p>
-                        <p className="text-sm text-slate-500">{emp.position}</p>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 text-center font-semibold text-purple-600">{emp.valoresScore}%</td>
-                  <td className="px-6 py-4 text-center font-semibold text-blue-600">{emp.resultadosScore}%</td>
-                  <td className="px-6 py-4 text-center">
-                    <span className="px-3 py-1 rounded-lg font-bold text-sm" style={{ backgroundColor: colors.bg, color: colors.text }}>
-                      {classification.code}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 text-center text-sm text-slate-600">{totalEvaluators} personas</td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
+      {/* Results */}
+      {filteredEmployees.length === 0 ? (
+        <div className="bg-white border border-slate-200 rounded-2xl py-16 text-center">
+          <div className="w-16 h-16 rounded-2xl bg-slate-100 flex items-center justify-center mx-auto mb-4">
+            <Search className="w-7 h-7 text-slate-400" />
+          </div>
+          <h3 className="text-lg font-semibold text-slate-900 mb-1">Sin resultados</h3>
+          <p className="text-sm text-slate-500">
+            Intenta cambiar los filtros o el término de búsqueda.
+          </p>
+          {(searchTerm || selectedDept !== "all") && (
+            <button
+              onClick={() => { setSearchTerm(""); setSelectedDept("all"); }}
+              className="mt-4 text-sm font-medium text-slate-700 underline underline-offset-4 hover:text-slate-900"
+            >
+              Limpiar filtros
+            </button>
+          )}
+        </div>
+      ) : (
+        <EmployeeTable employees={filteredEmployees} onSelect={navigateToProfile} columns={columns} />
+      )}
+
+      <ColumnsPanel
+        open={columnsPanelOpen}
+        onClose={() => setColumnsPanelOpen(false)}
+        visible={visibleColumnIds}
+        onChange={setVisibleColumnIds}
+      />
     </div>
   );
 };
@@ -1495,6 +2116,9 @@ const AppContent = () => {
             <Route path="/" element={<Dashboard isAdmin={isAdmin} />} />
             <Route path="/9box" element={<EmpleadoAPage isAdmin={isAdmin} />} />
             <Route path="/employees" element={<EmployeeList isAdmin={isAdmin} />} />
+            <Route path="/perfiles-puesto" element={<JobProfiles isAdmin={isAdmin} />} />
+            <Route path="/perfiles-puesto-v2" element={<JobProfilesV2 isAdmin={isAdmin} />} />
+            <Route path="/configuracion" element={<CompanySettings isAdmin={isAdmin} />} />
             <Route path="/evaluations" element={<Evaluations360View isAdmin={isAdmin} />} />
             <Route path="/pdi" element={<PDIView isAdmin={isAdmin} />} />
             <Route path="/aciertos-desaciertos" element={<AciertosDesaciertosView isAdmin={isAdmin} />} />
@@ -1513,9 +2137,11 @@ const AppContent = () => {
 function App() {
   return (
     <AuthProvider>
-      <BrowserRouter>
-        <AppContent />
-      </BrowserRouter>
+      <CompanyValuesProvider>
+        <BrowserRouter>
+          <AppContent />
+        </BrowserRouter>
+      </CompanyValuesProvider>
     </AuthProvider>
   );
 }

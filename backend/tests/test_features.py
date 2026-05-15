@@ -6,7 +6,11 @@ import pytest
 import requests
 import os
 
+<<<<<<< HEAD
 BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://repo-lift-1.preview.emergentagent.com').rstrip('/')
+=======
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://exec-project.preview.emergentagent.com').rstrip('/')
+>>>>>>> origin/conflict_150526_1026
 
 # Test credentials
 ADMIN_CREDENTIALS = {"email": "maria@empresa.com", "password": "maria123"}
