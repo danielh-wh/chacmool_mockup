@@ -1440,6 +1440,11 @@ const ALL_COLUMNS = [
         <div className="min-w-0">
           <p className="font-semibold text-slate-900 truncate leading-tight">{emp.name}</p>
           <p className="text-xs text-slate-500 truncate mt-0.5">{emp.position}</p>
+          {emp.is_active === false && (
+            <span className="inline-flex mt-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-rose-100 text-rose-700">
+              Inactivo
+            </span>
+          )}
         </div>
       </div>
     ),
@@ -1743,14 +1748,14 @@ const EmployeeCard = ({ emp, onClick }) => {
   );
 };
 
-const EmployeeTable = ({ employees, onSelect, columns }) => {
+const EmployeeTable = ({ employees, onSelect, columns, selectedIds, onToggleOne, onToggleAllVisible, allVisibleSelected }) => {
   // Each column carries its own header and renderer, so the table layout is
   // fully driven by the user's selection from ColumnsPanel.
   const gridTemplate = useMemo(
     () =>
       [
+        "52px", // checkbox column
         ...columns.map((c) => c.width || "minmax(140px,1fr)"),
-        "100px", // actions column
       ].join(" "),
     [columns],
   );
@@ -1763,6 +1768,15 @@ const EmployeeTable = ({ employees, onSelect, columns }) => {
           className="hidden lg:grid items-center gap-6 px-6 py-3 bg-slate-50 border-b border-slate-200"
           style={{ gridTemplateColumns: gridTemplate, minWidth: "max-content" }}
         >
+          <div className="flex justify-center">
+            <input
+              type="checkbox"
+              checked={allVisibleSelected}
+              onChange={onToggleAllVisible}
+              className="w-4 h-4 rounded border-slate-300 text-slate-900 focus:ring-slate-300"
+              data-testid="employees-select-all-checkbox"
+            />
+          </div>
           {columns.map((c) => (
             <span
               key={c.id}
@@ -1771,9 +1785,6 @@ const EmployeeTable = ({ employees, onSelect, columns }) => {
               {c.label}
             </span>
           ))}
-          <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider text-right">
-            Acciones
-          </span>
         </div>
 
         <div className="divide-y divide-slate-100">
@@ -1784,29 +1795,33 @@ const EmployeeTable = ({ employees, onSelect, columns }) => {
               <div
                 key={emp.id}
                 onClick={() => onSelect(emp)}
-                className="group relative grid items-center gap-4 lg:gap-6 px-6 py-4 hover:bg-slate-50/70 cursor-pointer transition-colors grid-cols-1 lg:grid-cols-none"
+                className={`group relative grid items-center gap-4 lg:gap-6 px-6 py-4 hover:bg-slate-50/70 cursor-pointer transition-colors grid-cols-1 lg:grid-cols-none ${
+                  emp.is_active === false ? "opacity-75" : ""
+                }`}
                 style={{ gridTemplateColumns: gridTemplate, minWidth: "max-content" }}
+                data-testid={`employee-row-${emp.id}`}
               >
                 <span
                   aria-hidden
                   className="absolute left-0 top-2 bottom-2 w-1 rounded-r-full opacity-0 group-hover:opacity-100 transition-opacity"
                   style={{ backgroundColor: dept?.color || "#94a3b8" }}
                 />
+
+                <div className="flex justify-center" onClick={(e) => e.stopPropagation()}>
+                  <input
+                    type="checkbox"
+                    checked={selectedIds.includes(emp.id)}
+                    onChange={() => onToggleOne(emp.id)}
+                    className="w-4 h-4 rounded border-slate-300 text-slate-900 focus:ring-slate-300"
+                    data-testid={`employee-select-checkbox-${emp.id}`}
+                  />
+                </div>
+
                 {columns.map((c) => (
                   <div key={c.id} className={c.cellClass || "min-w-0"}>
                     {c.render(emp, { dept, work })}
                   </div>
                 ))}
-                {/* Acciones column */}
-                <div className="flex items-center gap-1 justify-self-end">
-                  <button
-                    onClick={(e) => { e.stopPropagation(); onSelect(emp); }}
-                    className="p-2 rounded-lg text-slate-400 hover:text-slate-900 hover:bg-slate-100 transition-all"
-                    title="Ver perfil"
-                  >
-                    <ChevronRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
-                  </button>
-                </div>
               </div>
             );
           })}
@@ -1820,6 +1835,15 @@ const EmployeeList = ({ isAdmin }) => {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedDept, setSelectedDept] = useState("all");
+  const [employeeRows, setEmployeeRows] = useState(() =>
+    mockEmployees.map((employee) => ({
+      ...employee,
+      is_active: employee.is_active !== false,
+    })),
+  );
+  const [selectedEmployeeIds, setSelectedEmployeeIds] = useState([]);
+  const [bulkDepartmentId, setBulkDepartmentId] = useState("all");
+  const [confirmDialog, setConfirmDialog] = useState(null);
   const [columnsPanelOpen, setColumnsPanelOpen] = useState(false);
   const [visibleColumnIds, setVisibleColumnIds] = useState(() => {
     try {
@@ -1846,7 +1870,7 @@ const EmployeeList = ({ isAdmin }) => {
 
   const filteredEmployees = useMemo(() => {
     const q = searchTerm.trim().toLowerCase();
-    return mockEmployees.filter((emp) => {
+    return employeeRows.filter((emp) => {
       const matchesSearch =
         !q ||
         emp.name.toLowerCase().includes(q) ||
@@ -1855,18 +1879,83 @@ const EmployeeList = ({ isAdmin }) => {
       const matchesDept = selectedDept === "all" || emp.departmentId === selectedDept;
       return matchesSearch && matchesDept;
     });
-  }, [searchTerm, selectedDept]);
+  }, [searchTerm, selectedDept, employeeRows]);
+
+  const selectedSet = useMemo(() => new Set(selectedEmployeeIds), [selectedEmployeeIds]);
 
   const stats = useMemo(() => {
-    const total = mockEmployees.length;
-    const empA = mockEmployees.filter((e) => getClassification(e.valoresScore, e.resultadosScore).code === "A").length;
-    const empAtt = mockEmployees.filter((e) => {
-      const c = getClassification(e.valoresScore, e.resultadosScore).code;
-      return c.startsWith("C");
-    }).length;
-    const numDepts = new Set(mockEmployees.map((e) => e.departmentId)).size;
-    return { total, empA, empAtt, numDepts };
-  }, []);
+    const total = employeeRows.length;
+    const empA = employeeRows.filter((e) => getClassification(e.valoresScore, e.resultadosScore).code === "A").length;
+    const inactivos = employeeRows.filter((e) => e.is_active === false).length;
+    const numDepts = new Set(employeeRows.map((e) => e.departmentId)).size;
+    return { total, empA, inactivos, numDepts };
+  }, [employeeRows]);
+
+  const allVisibleSelected =
+    filteredEmployees.length > 0 && filteredEmployees.every((employee) => selectedSet.has(employee.id));
+
+  const toggleEmployeeSelection = (employeeId) => {
+    setSelectedEmployeeIds((prev) =>
+      prev.includes(employeeId) ? prev.filter((id) => id !== employeeId) : [...prev, employeeId],
+    );
+  };
+
+  const toggleAllVisibleEmployees = () => {
+    if (allVisibleSelected) {
+      setSelectedEmployeeIds((prev) => prev.filter((id) => !filteredEmployees.some((employee) => employee.id === id)));
+      return;
+    }
+
+    const visibleIds = filteredEmployees.map((employee) => employee.id);
+    setSelectedEmployeeIds((prev) => Array.from(new Set([...prev, ...visibleIds])));
+  };
+
+  const openBulkConfirmation = (type) => {
+    if (selectedEmployeeIds.length === 0) return;
+
+    if (type === "change_department") {
+      const targetDepartment = mockDepartments.find((department) => department.id === bulkDepartmentId);
+      if (!targetDepartment) return;
+      setConfirmDialog({ type, department: targetDepartment });
+      return;
+    }
+
+    setConfirmDialog({ type });
+  };
+
+  const applyBulkAction = () => {
+    if (!confirmDialog) return;
+
+    const selectedIdsSet = new Set(selectedEmployeeIds);
+
+    if (confirmDialog.type === "deactivate") {
+      setEmployeeRows((prev) => prev.map((employee) => (
+        selectedIdsSet.has(employee.id)
+          ? { ...employee, is_active: false }
+          : employee
+      )));
+    }
+
+    if (confirmDialog.type === "delete") {
+      setEmployeeRows((prev) => prev.filter((employee) => !selectedIdsSet.has(employee.id)));
+    }
+
+    if (confirmDialog.type === "change_department" && confirmDialog.department) {
+      const targetDepartment = confirmDialog.department;
+      setEmployeeRows((prev) => prev.map((employee) => (
+        selectedIdsSet.has(employee.id)
+          ? {
+              ...employee,
+              departmentId: targetDepartment.id,
+              department: targetDepartment.name,
+            }
+          : employee
+      )));
+    }
+
+    setSelectedEmployeeIds([]);
+    setConfirmDialog(null);
+  };
 
   const navigateToProfile = (emp) => navigate(`/perfil/${emp.id.replace("EMP-00", "")}`);
 
@@ -1894,7 +1983,7 @@ const EmployeeList = ({ isAdmin }) => {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mb-6">
         <EmpStatCard icon={Users} label="Total" value={stats.total} accent="slate" />
         <EmpStatCard icon={Star} label="Empleados A" value={stats.empA} accent="green" />
-        <EmpStatCard icon={AlertTriangle} label="Atención" value={stats.empAtt} accent="red" />
+        <EmpStatCard icon={AlertTriangle} label="Inactivos" value={stats.inactivos} accent="red" />
         <EmpStatCard icon={Building2} label="Departamentos" value={stats.numDepts} accent="blue" />
       </div>
 
@@ -1956,6 +2045,54 @@ const EmployeeList = ({ isAdmin }) => {
             );
           })}
         </div>
+
+        <div className="mt-4 pt-4 border-t border-slate-100 flex flex-wrap items-center gap-2">
+          <span className="text-sm text-slate-600" data-testid="employees-selected-count">
+            Seleccionados: <strong className="text-slate-900">{selectedEmployeeIds.length}</strong>
+          </span>
+
+          <button
+            onClick={() => openBulkConfirmation("deactivate")}
+            disabled={selectedEmployeeIds.length === 0}
+            className="px-3 py-2 rounded-xl text-sm font-medium border border-amber-200 text-amber-700 bg-amber-50 hover:bg-amber-100 disabled:opacity-50 disabled:cursor-not-allowed"
+            data-testid="employees-bulk-deactivate-button"
+          >
+            <XCircle className="w-4 h-4 inline mr-1.5" />
+            Dar de baja
+          </button>
+
+          <button
+            onClick={() => openBulkConfirmation("delete")}
+            disabled={selectedEmployeeIds.length === 0}
+            className="px-3 py-2 rounded-xl text-sm font-medium border border-red-200 text-red-700 bg-red-50 hover:bg-red-100 disabled:opacity-50 disabled:cursor-not-allowed"
+            data-testid="employees-bulk-delete-button"
+          >
+            <Trash2 className="w-4 h-4 inline mr-1.5" />
+            Eliminar
+          </button>
+
+          <select
+            value={bulkDepartmentId}
+            onChange={(e) => setBulkDepartmentId(e.target.value)}
+            className="px-3 py-2 rounded-xl border border-slate-200 text-sm text-slate-700 bg-white"
+            data-testid="employees-bulk-department-select"
+          >
+            <option value="all">Cambiar departamento…</option>
+            {mockDepartments.map((department) => (
+              <option key={department.id} value={department.id}>{department.name}</option>
+            ))}
+          </select>
+
+          <button
+            onClick={() => openBulkConfirmation("change_department")}
+            disabled={selectedEmployeeIds.length === 0 || bulkDepartmentId === "all"}
+            className="px-3 py-2 rounded-xl text-sm font-medium border border-blue-200 text-blue-700 bg-blue-50 hover:bg-blue-100 disabled:opacity-50 disabled:cursor-not-allowed"
+            data-testid="employees-bulk-change-department-button"
+          >
+            <Building2 className="w-4 h-4 inline mr-1.5" />
+            Cambiar departamento
+          </button>
+        </div>
       </div>
 
       {/* Results */}
@@ -1978,7 +2115,45 @@ const EmployeeList = ({ isAdmin }) => {
           )}
         </div>
       ) : (
-        <EmployeeTable employees={filteredEmployees} onSelect={navigateToProfile} columns={columns} />
+        <EmployeeTable
+          employees={filteredEmployees}
+          onSelect={navigateToProfile}
+          columns={columns}
+          selectedIds={selectedEmployeeIds}
+          onToggleOne={toggleEmployeeSelection}
+          onToggleAllVisible={toggleAllVisibleEmployees}
+          allVisibleSelected={allVisibleSelected}
+        />
+      )}
+
+      {confirmDialog && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/45 px-4" data-testid="employees-bulk-confirmation-modal">
+          <div className="w-full max-w-lg bg-white rounded-2xl border border-slate-200 shadow-2xl p-6">
+            <h3 className="text-lg font-semibold text-slate-900 mb-2">Confirmar acción masiva</h3>
+            <p className="text-sm text-slate-600 mb-5" data-testid="employees-bulk-confirmation-message">
+              {confirmDialog.type === "deactivate" && `Se darán de baja ${selectedEmployeeIds.length} empleados seleccionados.`}
+              {confirmDialog.type === "delete" && `Se eliminarán ${selectedEmployeeIds.length} empleados seleccionados.`}
+              {confirmDialog.type === "change_department" && `Se moverán ${selectedEmployeeIds.length} empleados a ${confirmDialog.department?.name}.`}
+            </p>
+
+            <div className="flex items-center justify-end gap-2">
+              <button
+                onClick={() => setConfirmDialog(null)}
+                className="px-4 py-2 rounded-xl border border-slate-200 text-slate-700 text-sm font-medium hover:bg-slate-50"
+                data-testid="employees-bulk-confirm-cancel"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={applyBulkAction}
+                className="px-4 py-2 rounded-xl bg-slate-900 text-white text-sm font-medium hover:bg-slate-800"
+                data-testid="employees-bulk-confirm-apply"
+              >
+                Confirmar
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       <ColumnsPanel

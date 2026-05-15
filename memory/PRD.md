@@ -23,6 +23,13 @@
 - Implementado frontend: botón **"Simular 20-30"** por encuesta en Clima Laboral (admin/manager), luego abre resultados automáticamente.
 - Validación: creación de encuesta desde plantilla + simulación + resultados con 4 departamentos verificados.
 
+## Feature (2026-05-15) — Lista de Empleados con acciones masivas
+- Se eliminó la columna **Acciones** de la tabla (el clic en fila sigue abriendo perfil).
+- Se agregó selección por **checkbox por fila** + **seleccionar todo visible**.
+- Nueva barra masiva: **Dar de baja** (`is_active=false`), **Eliminar**, y **Cambiar departamento**.
+- Se añadió modal de confirmación obligatorio para todas las acciones masivas.
+- La vista ahora muestra estado **Inactivo** por empleado y tarjeta resumen de inactivos.
+
 ## Stack
 React (CRA + Tailwind) + FastAPI + MongoDB. Frontend mock-state para Job Profiles. PDF con `html2pdf.js`.
 
@@ -52,6 +59,7 @@ Ver `/app/memory/test_credentials.md`. Demo admin: `maria@empresa.com / maria123
 ## Backlog
 - [P0] Revisar causa intermitente de reinicio de frontend (`craco: not found`) para evitar caídas en arranque automático.
 - [P1] Permitir parametrizar simulación (rango de respuestas, departamentos, sesgo de satisfacción) desde UI.
+- [P1] Persistir acciones masivas de Empleados contra backend (estado/baja/cambio de departamento/eliminación).
 - [P1] Editor de texto enriquecido (TipTap) en "Responsabilidades y Funciones".
 - [P2] Backend CRUD real para Job Profiles en MongoDB (V1 y V2 todavía state local).
 - [P2] Persistir valores de empresa en backend (hoy en localStorage).
