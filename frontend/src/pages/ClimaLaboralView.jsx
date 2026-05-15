@@ -33,6 +33,39 @@ const getHealthLevel = (value) => {
 
 const clampPercent = (value) => Math.max(0, Math.min(100, Number(value) || 0));
 
+const getAverageVisualState = (value) => {
+  const average = Number(value || 0);
+
+  if (average >= 4.95) {
+    return {
+      tone: 'alto',
+      badgeClass: 'bg-emerald-100 text-emerald-700',
+      textClass: 'text-emerald-600',
+      barClass: 'bg-emerald-500',
+      label: 'Excelente',
+    };
+  }
+
+  if (average <= 3) {
+    return {
+      tone: 'bajo',
+      badgeClass: 'bg-red-100 text-red-700',
+      textClass: 'text-red-600',
+      barClass: 'bg-red-500',
+      label: 'Bajo',
+    };
+  }
+
+  return {
+    tone: 'promedio',
+    badgeClass: 'bg-amber-100 text-amber-700',
+    textClass: 'text-amber-700',
+    barClass: 'bg-amber-500',
+    label: 'Promedio',
+  };
+};
+
+
 const createEmptyQuestion = () => ({
   id: `q-${Date.now()}-${Math.random()}`,
   pregunta: '',
@@ -1132,9 +1165,14 @@ const ClimaLaboralView = () => {
                   <span className="px-2 py-1 rounded-full text-xs font-medium bg-slate-100 text-slate-600">Abierta</span>
                 ) : (
                   <div className="flex items-center gap-2">
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${stat.alerta ? 'bg-red-100 text-red-700' : 'bg-slate-100 text-slate-700'}`}>
-                      Promedio: {stat.promedio} / 5
-                    </span>
+                    {(() => {
+                      const averageState = getAverageVisualState(stat.promedio);
+                      return (
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${averageState.badgeClass}`}>
+                          Promedio: {Number(stat.promedio || 0).toFixed(1)} / 5
+                        </span>
+                      );
+                    })()}
                     {stat.alerta && (
                       <span className="text-xs font-medium text-red-600 inline-flex items-center gap-1">
                         <AlertTriangle className="w-3 h-3" />
@@ -1398,22 +1436,26 @@ const ClimaLaboralView = () => {
                   <p className="text-sm text-slate-500">No hay preguntas cerradas para calcular promedio.</p>
                 ) : (
                   <div className="space-y-3">
-                    {(visibleResult.question_promedios || []).map((question) => (
-                      <div key={question.id}>
-                        <div className="flex items-center justify-between text-sm mb-1">
-                          <span className="text-slate-700 line-clamp-1">{question.codigo} · {question.pregunta}</span>
-                          <span className={`font-semibold ${question.promedio <= 3 ? 'text-red-600' : 'text-emerald-600'}`}>
-                            {Number(question.promedio || 0).toFixed(1)} / 5
-                          </span>
+                    {(visibleResult.question_promedios || []).map((question) => {
+                      const averageState = getAverageVisualState(question.promedio);
+
+                      return (
+                        <div key={question.id}>
+                          <div className="flex items-center justify-between text-sm mb-1">
+                            <span className="text-slate-700 line-clamp-1">{question.codigo} · {question.pregunta}</span>
+                            <span className={`font-semibold ${averageState.textClass}`}>
+                              {Number(question.promedio || 0).toFixed(1)} / 5
+                            </span>
+                          </div>
+                          <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
+                            <div
+                              className={`h-full rounded-full ${averageState.barClass}`}
+                              style={{ width: `${Math.max(0, Math.min(100, Number(question.promedio || 0) * 20))}%` }}
+                            />
+                          </div>
                         </div>
-                        <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
-                          <div
-                            className={`h-full rounded-full ${question.promedio <= 3 ? 'bg-red-500' : 'bg-emerald-500'}`}
-                            style={{ width: `${Math.max(0, Math.min(100, Number(question.promedio || 0) * 20))}%` }}
-                          />
-                        </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
               </div>

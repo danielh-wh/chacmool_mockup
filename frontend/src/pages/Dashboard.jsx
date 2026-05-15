@@ -93,6 +93,7 @@ const Dashboard = ({ isAdmin }) => {
     const summary = employeeSummary || {
       periodo: 'Periodo actual',
       comisiones_bonos: { total: 0, comisiones: 0, bono_desempeno: 0 },
+      nomina: { sueldo_base: 0, variable: 0, descuentos: 0, neto_cobrar: 0 },
       asistencia: { dias_trabajados: 0, dias_habiles: 0, retardos: 0, descuentos: 0 },
       actividades: [],
       vacaciones: { saldo_dias: 0, usados_periodo: 0, proximas: [] },
@@ -116,11 +117,11 @@ const Dashboard = ({ isAdmin }) => {
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-6 gap-4">
           <div className="bg-white border border-slate-200 rounded-2xl p-5">
             <Wallet className="w-5 h-5 text-emerald-500 mb-2" />
-            <p className="text-sm text-slate-500">Comisiones y bonos</p>
-            <p className="text-2xl font-bold text-slate-900">{currency(summary.comisiones_bonos?.total)}</p>
-            <p className="text-xs text-slate-500 mt-1">
-              Comisiones: {currency(summary.comisiones_bonos?.comisiones)}
-            </p>
+            <p className="text-sm text-slate-500">Compensación del periodo</p>
+            <p className="text-2xl font-bold text-slate-900">{currency(summary.nomina?.neto_cobrar)}</p>
+            <p className="text-xs text-slate-500 mt-1">Sueldo base: {currency(summary.nomina?.sueldo_base)}</p>
+            <p className="text-xs text-slate-500">Variable (bonos/comisiones): {currency(summary.nomina?.variable || summary.comisiones_bonos?.total)}</p>
+            <p className="text-xs text-slate-500">Descuentos aplicados: {currency(summary.nomina?.descuentos || summary.asistencia?.descuentos)}</p>
           </div>
 
           <div className="bg-white border border-slate-200 rounded-2xl p-5">

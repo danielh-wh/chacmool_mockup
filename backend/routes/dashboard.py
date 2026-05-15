@@ -23,6 +23,9 @@ def build_employee_dashboard_summary(current_user: Dict[str, Any]) -> Dict[str, 
     descuentos = float((retardos * 175) + (seed % 3) * 120)
     comisiones = float(1800 + (seed % 8) * 420)
     bono_desempeno = float(800 + (seed % 5) * 250)
+    sueldo_base = float(11500 + (seed % 6) * 850)
+    total_variable = round(comisiones + bono_desempeno, 2)
+    neto_cobrar = round(sueldo_base + total_variable - descuentos, 2)
 
     actividades: List[Dict[str, Any]] = [
         {
@@ -103,7 +106,14 @@ def build_employee_dashboard_summary(current_user: Dict[str, Any]) -> Dict[str, 
         "comisiones_bonos": {
             "comisiones": comisiones,
             "bono_desempeno": bono_desempeno,
-            "total": round(comisiones + bono_desempeno, 2),
+            "total": total_variable,
+            "moneda": "MXN",
+        },
+        "nomina": {
+            "sueldo_base": sueldo_base,
+            "variable": total_variable,
+            "descuentos": descuentos,
+            "neto_cobrar": neto_cobrar,
             "moneda": "MXN",
         },
         "asistencia": {
@@ -136,7 +146,7 @@ async def get_employee_dashboard_summary(current_user: dict = Depends(get_curren
         base_summary = build_employee_dashboard_summary(current_user)
         missing_fields = {}
 
-        for field in ["anuncios", "actividades", "objetivos", "alertas", "vacaciones", "asistencia", "comisiones_bonos"]:
+        for field in ["anuncios", "actividades", "objetivos", "alertas", "vacaciones", "asistencia", "comisiones_bonos", "nomina"]:
             if field not in summary:
                 missing_fields[field] = base_summary.get(field)
                 summary[field] = base_summary.get(field)

@@ -803,8 +803,8 @@ def test_employee_dashboard_summary():
             
             log_test("GET Employee Dashboard Summary - Response", True, "ok=true and summary present")
             
-            # Check required summary fields (INCLUDING NEW FIELD: anuncios)
-            required_fields = ["comisiones_bonos", "asistencia", "actividades", 
+            # Check required summary fields (INCLUDING NEW FIELDS: anuncios, nomina)
+            required_fields = ["comisiones_bonos", "nomina", "asistencia", "actividades", 
                              "vacaciones", "objetivos", "alertas", "anuncios"]
             missing_fields = [field for field in required_fields if field not in summary]
             
@@ -814,7 +814,7 @@ def test_employee_dashboard_summary():
                 return
             
             log_test("GET Employee Dashboard Summary - Structure", True, 
-                    "All required fields present (comisiones_bonos, asistencia, actividades, vacaciones, objetivos, alertas, anuncios)")
+                    "All required fields present (comisiones_bonos, nomina, asistencia, actividades, vacaciones, objetivos, alertas, anuncios)")
             
             # Verify comisiones_bonos structure
             comisiones_bonos = summary.get("comisiones_bonos", {})

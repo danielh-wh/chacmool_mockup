@@ -326,15 +326,15 @@ backend:
 metadata:
   created_by: "main_agent"
   version: "1.0"
-  test_sequence: 9
+  test_sequence: 10
   run_ui: true
 
 test_plan:
   current_focus:
+    - "Colores de promedio por pregunta en resultados"
+    - "Sueldo base y neto a cobrar en dashboard empleado"
     - "Guardar plantilla y lanzar encuesta en Clima Laboral"
     - "Plantilla predeterminada única basada en PDF"
-    - "APIs de Clima Laboral con metas, plantillas y resultados"
-    - "API de resumen para dashboard de empleado"
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
