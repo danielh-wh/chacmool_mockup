@@ -118,38 +118,19 @@ export const AuthProvider = ({ children }) => {
         body: JSON.stringify({ email, password })
       });
 
-<<<<<<< HEAD
-      const payload = await parseApiResponse(response);
-
-      if (!response.ok) {
-        throw new Error(getErrorMessage(payload));
-      }
-
-      if (!payload?.access_token || !payload?.user) {
-        throw new Error('Respuesta inválida del servidor');
-      }
-
-      setToken(payload.access_token);
-      setUser(payload.user);
-      localStorage.setItem('token', payload.access_token);
-=======
       const data = await readJsonSafe(response);
 
       if (!response.ok) {
-        const detail = data?.detail;
-        const message =
-          typeof detail === 'string'
-            ? detail
-            : Array.isArray(detail)
-            ? detail.map((d) => d.msg || d).join(', ')
-            : 'Credenciales incorrectas';
-        throw new Error(message);
+        throw new Error(getErrorMessage(data));
+      }
+
+      if (!data?.access_token || !data?.user) {
+        throw new Error('Respuesta inválida del servidor');
       }
 
       setToken(data.access_token);
       setUser(data.user);
       localStorage.setItem('token', data.access_token);
->>>>>>> origin/conflict_150526_1026
       return { success: true };
     } catch (error) {
       return { success: false, error: error.message };

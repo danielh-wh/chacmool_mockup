@@ -993,11 +993,8 @@ const Sidebar = ({ isAdmin, setIsAdmin }) => {
     { path: "/pdi", icon: Target, label: "PDI", description: "Plan de Desarrollo", roles: ['admin'] },
     { path: "/aciertos-desaciertos", icon: ClipboardList, label: "Aciertos y Desaciertos", description: "Evaluación bilateral", roles: ['admin'] },
     { path: "/kpis", icon: Target, label: "KPIs", description: "Indicadores clave", roles: ['admin'] },
-<<<<<<< HEAD
-    { path: "/clima-laboral", icon: Activity, label: "Clima Laboral", description: "Encuestas de satisfacción", roles: ['admin', 'empleado'] },
-=======
     { path: "/configuracion", icon: Settings, label: "Configuración", description: "Valores de empresa", roles: ['admin'] },
->>>>>>> origin/conflict_150526_1026
+    { path: "/clima-laboral", icon: Activity, label: "Clima Laboral", description: "Encuestas de satisfacción", roles: ['admin', 'empleado'] },
   ];
   
   // Filtrar navItems basado en el rol del usuario

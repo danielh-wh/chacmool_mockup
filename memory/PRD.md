@@ -5,6 +5,11 @@
 - **Decisión tomada:** usar `supervisor` para arrancar servicios (backend/frontend) y validar salud local + URL preview.
 - **Resultado implementado:** backend y frontend levantados, con verificación HTTP exitosa.
 
+## Corrección de bug (2026-05-15)
+- Error reportado: `SyntaxError ... Unexpected token <<<<<<< HEAD` en `frontend/src/App.js`.
+- Causa raíz: conflicto de merge sin resolver (marcadores `<<<<<<< ======= >>>>>>>`) en `App.js` y `contexts/AuthContext.jsx`.
+- Fix aplicado: limpieza completa de marcadores, fusión lógica de navegación y login, verificación sin conflictos restantes.
+
 ## Stack
 React (CRA + Tailwind) + FastAPI + MongoDB. Frontend mock-state para Job Profiles. PDF con `html2pdf.js`.
 
