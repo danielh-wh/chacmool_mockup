@@ -114,14 +114,29 @@ const Dashboard = ({ isAdmin }) => {
           <p className="text-slate-500 mt-1">Resumen de tu periodo: {summary.periodo}</p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-6 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
           <div className="bg-white border border-slate-200 rounded-2xl p-5">
             <Wallet className="w-5 h-5 text-emerald-500 mb-2" />
-            <p className="text-sm text-slate-500">Compensación del periodo</p>
+            <p className="text-sm text-slate-500">Sueldo base</p>
+            <p className="text-2xl font-bold text-slate-900">{currency(summary.nomina?.sueldo_base)}</p>
+            <p className="text-xs text-slate-500 mt-1">Mensual estimado</p>
+          </div>
+
+          <div className="bg-white border border-slate-200 rounded-2xl p-5">
+            <Award className="w-5 h-5 text-purple-500 mb-2" />
+            <p className="text-sm text-slate-500">Comisiones y bonos</p>
+            <p className="text-2xl font-bold text-slate-900">{currency(summary.comisiones_bonos?.total)}</p>
+            <p className="text-xs text-slate-500 mt-1">Comisiones: {currency(summary.comisiones_bonos?.comisiones)}</p>
+            <p className="text-xs text-slate-500">Bono desempeño: {currency(summary.comisiones_bonos?.bono_desempeno)}</p>
+          </div>
+
+          <div className="bg-white border border-slate-200 rounded-2xl p-5">
+            <TrendingUp className="w-5 h-5 text-blue-500 mb-2" />
+            <p className="text-sm text-slate-500">Neto estimado a cobrar</p>
             <p className="text-2xl font-bold text-slate-900">{currency(summary.nomina?.neto_cobrar)}</p>
-            <p className="text-xs text-slate-500 mt-1">Sueldo base: {currency(summary.nomina?.sueldo_base)}</p>
-            <p className="text-xs text-slate-500">Variable (bonos/comisiones): {currency(summary.nomina?.variable || summary.comisiones_bonos?.total)}</p>
-            <p className="text-xs text-slate-500">Descuentos aplicados: {currency(summary.nomina?.descuentos || summary.asistencia?.descuentos)}</p>
+            <p className="text-xs text-slate-500 mt-1">
+              Base + variable - descuentos
+            </p>
           </div>
 
           <div className="bg-white border border-slate-200 rounded-2xl p-5">

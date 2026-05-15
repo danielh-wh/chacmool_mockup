@@ -331,9 +331,9 @@ metadata:
 
 test_plan:
   current_focus:
-    - "Colores de promedio por pregunta en resultados"
+    - "Color de promedio por pregunta en tab Por Pregunta"
+    - "Tarjeta separada de comisiones/bonos y sueldo base/neto en dashboard empleado"
     - "Sueldo base y neto a cobrar en dashboard empleado"
-    - "Guardar plantilla y lanzar encuesta en Clima Laboral"
     - "Plantilla predeterminada única basada en PDF"
   stuck_tasks: []
   test_all: false
