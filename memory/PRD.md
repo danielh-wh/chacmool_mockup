@@ -10,6 +10,12 @@
 - Causa raíz: conflicto de merge sin resolver (marcadores `<<<<<<< ======= >>>>>>>`) en `App.js` y `contexts/AuthContext.jsx`.
 - Fix aplicado: limpieza completa de marcadores, fusión lógica de navegación y login, verificación sin conflictos restantes.
 
+## Corrección auth (2026-05-15)
+- Error reportado: "Credenciales inválidas" al iniciar sesión.
+- Causa raíz principal: `REACT_APP_BACKEND_URL` ausente en frontend, generando requests a `/undefined/api/auth/login`.
+- Causa secundaria: base de datos sin seed de usuarios.
+- Fix aplicado: creación de `frontend/.env` con `REACT_APP_BACKEND_URL`, ejecución de `backend/seed.py`, validación por API y login UI exitoso.
+
 ## Stack
 React (CRA + Tailwind) + FastAPI + MongoDB. Frontend mock-state para Job Profiles. PDF con `html2pdf.js`.
 
