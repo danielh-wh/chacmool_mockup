@@ -190,8 +190,8 @@ const TextArea = (props) => (
 
 // Criteria color tokens (close to the PDF)
 const CRITERIA = {
-  ideal:        { label: "IDEAL",        bg: "bg-cyan-800",    text: "text-white", soft: "bg-cyan-100",    border: "border-cyan-500",    chip: "text-cyan-900",    chipBg: "bg-cyan-100",    ring: "ring-cyan-300" },
-  esperado:     { label: "ESPERADO",     bg: "bg-emerald-800", text: "text-white", soft: "bg-emerald-100", border: "border-emerald-500", chip: "text-emerald-900", chipBg: "bg-emerald-100", ring: "ring-emerald-300" },
+  ideal:        { label: "IDEAL",        bg: "bg-cyan-500",    text: "text-white", soft: "bg-cyan-100",    border: "border-cyan-500",    chip: "text-cyan-900",    chipBg: "bg-cyan-100",    ring: "ring-cyan-300" },
+  esperado:     { label: "ESPERADO",     bg: "bg-emerald-500", text: "text-white", soft: "bg-emerald-100", border: "border-emerald-500", chip: "text-emerald-900", chipBg: "bg-emerald-100", ring: "ring-emerald-300" },
   intermedio:   { label: "INTERMEDIO",   bg: "bg-amber-600",   text: "text-white", soft: "bg-amber-100",   border: "border-amber-400",   chip: "text-amber-900",   chipBg: "bg-amber-100",   ring: "ring-amber-300" },
   insuficiente: { label: "INSUFICIENTE", bg: "bg-rose-700",    text: "text-white", soft: "bg-rose-100",    border: "border-rose-400",    chip: "text-rose-900",    chipBg: "bg-rose-100",    ring: "ring-rose-300" },
 };

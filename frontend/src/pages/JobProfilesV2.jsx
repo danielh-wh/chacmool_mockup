@@ -167,8 +167,8 @@ const TextArea = (props) => (
 );
 
 const CRITERIA = {
-  ideal:        { label: "IDEAL",        bg: "bg-cyan-800",    text: "text-white", soft: "bg-cyan-100",    chip: "text-cyan-900",    ring: "focus:ring-cyan-500" },
-  esperado:     { label: "ESPERADO",     bg: "bg-emerald-800", text: "text-white", soft: "bg-emerald-100", chip: "text-emerald-900", ring: "focus:ring-emerald-500" },
+  ideal:        { label: "IDEAL",        bg: "bg-cyan-500",    text: "text-white", soft: "bg-cyan-100",    chip: "text-cyan-900",    ring: "focus:ring-cyan-500" },
+  esperado:     { label: "ESPERADO",     bg: "bg-emerald-500", text: "text-white", soft: "bg-emerald-100", chip: "text-emerald-900", ring: "focus:ring-emerald-500" },
   intermedio:   { label: "INTERMEDIO",   bg: "bg-amber-600",   text: "text-white", soft: "bg-amber-100",   chip: "text-amber-900",   ring: "focus:ring-amber-400" },
   insuficiente: { label: "INSUFICIENTE", bg: "bg-rose-700",    text: "text-white", soft: "bg-rose-100",    chip: "text-rose-900",    ring: "focus:ring-rose-400" },
 };
