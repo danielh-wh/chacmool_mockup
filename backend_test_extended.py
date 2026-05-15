@@ -6,7 +6,7 @@ Extended Backend API Testing - Focus on Auth and Edge Cases
 import requests
 import json
 
-BASE_URL = "https://repo-lift-1.preview.emergentagent.com/api"
+BASE_URL = "https://levanta-build.preview.emergentagent.com/api"
 
 def test_multiple_logins():
     """Test login with multiple users to verify body consumed bug is fixed"""

@@ -10,7 +10,7 @@ from datetime import date, timedelta
 from typing import Dict, Any, Optional
 
 # Configuration
-BASE_URL = "https://repo-lift-1.preview.emergentagent.com/api"
+BASE_URL = "https://levanta-build.preview.emergentagent.com/api"
 ADMIN_EMAIL = "admin@empresa.com"
 ADMIN_PASSWORD = "admin123"
 EMPLOYEE_EMAIL = "juan@empresa.com"

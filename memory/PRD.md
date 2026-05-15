@@ -1,5 +1,10 @@
 # PRD — EvalPro (Sistema 360°)
 
+## Última solicitud (2026-05-15)
+- **Problema original:** "Levanta el proyecto".
+- **Decisión tomada:** usar `supervisor` para arrancar servicios (backend/frontend) y validar salud local + URL preview.
+- **Resultado implementado:** backend y frontend levantados, con verificación HTTP exitosa.
+
 ## Stack
 React (CRA + Tailwind) + FastAPI + MongoDB. Frontend mock-state para Job Profiles. PDF con `html2pdf.js`.
 
@@ -27,6 +32,7 @@ Ver `/app/memory/test_credentials.md`. Demo admin: `maria@empresa.com / maria123
   - Usa `html2pdf.js` (jspdf + html2canvas).
 
 ## Backlog
+- [P0] Revisar causa intermitente de reinicio de frontend (`craco: not found`) para evitar caídas en arranque automático.
 - [P1] Editor de texto enriquecido (TipTap) en "Responsabilidades y Funciones".
 - [P2] Backend CRUD real para Job Profiles en MongoDB (V1 y V2 todavía state local).
 - [P2] Persistir valores de empresa en backend (hoy en localStorage).
