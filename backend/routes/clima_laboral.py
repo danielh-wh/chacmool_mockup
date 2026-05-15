@@ -1,6 +1,7 @@
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
 from uuid import uuid4
 from typing import Dict, Any, List
+import random
 
 from fastapi import APIRouter, Depends, HTTPException
 
@@ -45,6 +46,141 @@ DEFAULT_TEMPLATE_QUESTIONS = [
     "En los últimos seis meses. ¿Alguien en el trabajo ha hablado contigo acerca de tu progreso?",
     "En el último año, ¿has tenido oportunidades de aprender y crecer en el trabajo?",
 ]
+
+SIMULATION_DEPARTMENTS = [
+    "Tecnología",
+    "Ventas",
+    "Operaciones",
+    "Recursos Humanos",
+]
+
+SIMULATION_DEPARTMENT_BIAS = {
+    "Tecnología": 0.45,
+    "Ventas": 0.1,
+    "Operaciones": -0.2,
+    "Recursos Humanos": 0.25,
+}
+
+SIMULATION_OPEN_COMMENTS = [
+    "Me siento motivado con los objetivos del equipo.",
+    "Hace falta mejorar la comunicación entre áreas.",
+    "El liderazgo es cercano y da seguimiento constante.",
+    "A veces la carga de trabajo se concentra en semanas críticas.",
+    "Tenemos buen ambiente y apoyo entre compañeros.",
+    "Sería ideal contar con más espacios de capacitación.",
+    "Las herramientas actuales facilitan el trabajo diario.",
+    "Necesitamos procesos más claros para priorizar tareas.",
+]
+
+
+def build_simulated_answers(
+    questions: List[Dict[str, Any]],
+    department: str,
+) -> List[Dict[str, Any]]:
+    answers: List[Dict[str, Any]] = []
+
+    for question in questions:
+        question_type = question.get("tipo")
+        question_id = question.get("id")
+
+        if question_type == "abierta":
+            answers.append(
+                {
+                    "pregunta_id": question_id,
+                    "tipo": "abierta",
+                    "opcion_ids": [],
+                    "texto_respuesta": random.choice(SIMULATION_OPEN_COMMENTS),
+                }
+            )
+            continue
+
+        options = question.get("opciones", [])
+        if not options:
+            continue
+
+        bias = SIMULATION_DEPARTMENT_BIAS.get(department, 0)
+        target_value = max(1.0, min(5.0, random.gauss(3.2 + bias, 0.85)))
+
+        ordered_options = sorted(
+            options,
+            key=lambda option: abs(float(option.get("valor", 3)) - target_value),
+        )
+
+        if question_type == "multiple":
+            max_choices = min(2, len(ordered_options))
+            take_count = random.randint(1, max_choices)
+            chosen_options = ordered_options[:take_count]
+        else:
+            chosen_options = ordered_options[:1]
+
+        chosen_ids = [option.get("id") for option in chosen_options if option.get("id")]
+        if not chosen_ids:
+            continue
+
+        answers.append(
+            {
+                "pregunta_id": question_id,
+                "tipo": question_type,
+                "opcion_ids": chosen_ids,
+                "texto_respuesta": None,
+            }
+        )
+
+    return answers
+
+
+def generate_simulation_docs(survey_id: str, survey_questions: List[Dict[str, Any]]):
+    total_responses = random.randint(20, 30)
+    now = datetime.utcnow()
+
+    response_docs: List[Dict[str, Any]] = []
+    participation_docs: List[Dict[str, Any]] = []
+    department_breakdown = {department: 0 for department in SIMULATION_DEPARTMENTS}
+
+    for index in range(total_responses):
+        if index < len(SIMULATION_DEPARTMENTS):
+            department = SIMULATION_DEPARTMENTS[index]
+        else:
+            department = random.choice(SIMULATION_DEPARTMENTS)
+
+        employee_id = f"sim-{survey_id[:8]}-{index + 1:03d}"
+        employee_name = f"Participante Simulado {index + 1:02d}"
+        created_at = now - timedelta(days=random.randint(0, 14), hours=random.randint(0, 23))
+
+        answers = build_simulated_answers(survey_questions, department)
+        if not answers:
+            continue
+
+        participation_docs.append(
+            {
+                "id": str(uuid4()),
+                "survey_id": survey_id,
+                "empleado_id": employee_id,
+                "fecha_participacion": created_at,
+            }
+        )
+
+        response_docs.append(
+            {
+                "id": str(uuid4()),
+                "survey_id": survey_id,
+                "empleado_id": employee_id,
+                "empleado_nombre": employee_name,
+                "departamento": department,
+                "created_at": created_at,
+                "respuestas": answers,
+            }
+        )
+
+        department_breakdown[department] += 1
+
+    clean_breakdown = {
+        department: count
+        for department, count in department_breakdown.items()
+        if count > 0
+    }
+
+    return response_docs, participation_docs, clean_breakdown
 
 
 def build_default_template_doc() -> Dict[str, Any]:
@@ -578,6 +714,53 @@ async def submit_survey_response(survey_id: str, payload: Dict[str, Any], curren
     await db.clima_responses.insert_one(response_doc)
 
     return {"ok": True, "message": "Respuestas registradas correctamente"}
+
+
+@router.post("/surveys/{survey_id}/simulate")
+async def simulate_survey_data(survey_id: str, current_user: dict = Depends(get_current_user)):
+    if current_user.get("role") not in ["admin", "manager"]:
+        raise HTTPException(status_code=403, detail="No autorizado para simular respuestas")
+
+    survey = await db.clima_surveys.find_one({"id": survey_id}, {"_id": 0})
+    if not survey:
+        raise HTTPException(status_code=404, detail="Encuesta no encontrada")
+
+    survey_questions = survey.get("preguntas", [])
+    if not survey_questions:
+        raise HTTPException(status_code=400, detail="La encuesta no tiene preguntas para simular")
+
+    response_docs, participation_docs, department_breakdown = generate_simulation_docs(
+        survey_id=survey_id,
+        survey_questions=survey_questions,
+    )
+
+    if len(response_docs) == 0:
+        raise HTTPException(status_code=400, detail="No se pudo generar la simulación")
+
+    await db.clima_participations.delete_many(
+        {
+            "survey_id": survey_id,
+            "empleado_id": {"$regex": "^sim-"},
+        }
+    )
+    await db.clima_responses.delete_many(
+        {
+            "survey_id": survey_id,
+            "empleado_id": {"$regex": "^sim-"},
+        }
+    )
+
+    await db.clima_participations.insert_many(participation_docs)
+    await db.clima_responses.insert_many(response_docs)
+
+    return {
+        "ok": True,
+        "survey_id": survey_id,
+        "total_respuestas": len(response_docs),
+        "departamentos_utilizados": len(department_breakdown),
+        "respuestas_por_departamento": department_breakdown,
+        "rango_objetivo": "20-30",
+    }
 
 
 @router.get("/surveys/{survey_id}/results")

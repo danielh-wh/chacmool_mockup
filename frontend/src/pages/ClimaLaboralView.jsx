@@ -606,6 +606,32 @@ const ClimaLaboralView = () => {
     }
   };
 
+  const handleSimulateSurvey = async (surveyId) => {
+    try {
+      setSaving(true);
+      const simulation = await climateAPI.simulateSurveyResponses(surveyId);
+
+      const breakdownLabel = Object.entries(simulation.respuestas_por_departamento || {})
+        .map(([department, count]) => `${department}: ${count}`)
+        .join(' · ');
+
+      toast.success(`Simulación lista (${simulation.total_respuestas} respuestas). ${breakdownLabel}`);
+
+      setCurrentView('results');
+      setSelectedSurveyId(surveyId);
+      setSelectedDepartment('Global');
+      setResultsTab('resumen-general');
+
+      const refreshedResults = await climateAPI.getSurveyResults(surveyId);
+      setResultsBySurvey((prev) => ({ ...prev, [surveyId]: refreshedResults }));
+      await loadDashboardData();
+    } catch (error) {
+      toast.error(error.message || 'No se pudieron generar respuestas simuladas');
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const openResults = async (surveyId) => {
     setCurrentView('results');
     setSelectedSurveyId(surveyId);
@@ -715,15 +741,28 @@ const ClimaLaboralView = () => {
                   </p>
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
                   {isAdmin ? (
-                    <button
-                      onClick={() => openResults(survey.id)}
-                      className="px-4 py-2 rounded-xl bg-slate-900 text-white text-sm font-medium hover:bg-slate-800"
-                    >
-                      <BarChart3 className="w-4 h-4 inline mr-2" />
-                      Resultados
-                    </button>
+                    <>
+                      <button
+                        onClick={() => openResults(survey.id)}
+                        className="px-4 py-2 rounded-xl bg-slate-900 text-white text-sm font-medium hover:bg-slate-800"
+                        data-testid={`survey-results-button-${survey.id}`}
+                      >
+                        <BarChart3 className="w-4 h-4 inline mr-2" />
+                        Resultados
+                      </button>
+
+                      <button
+                        onClick={() => handleSimulateSurvey(survey.id)}
+                        disabled={saving}
+                        className="px-4 py-2 rounded-xl border border-slate-300 bg-white text-slate-700 text-sm font-medium hover:bg-slate-50 disabled:opacity-50"
+                        data-testid={`survey-simulate-button-${survey.id}`}
+                      >
+                        <Users className="w-4 h-4 inline mr-2" />
+                        Simular 20-30
+                      </button>
+                    </>
                   ) : (
                     <button
                       disabled={!survey.esta_vigente}

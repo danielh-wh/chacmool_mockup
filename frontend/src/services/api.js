@@ -564,6 +564,14 @@ export const climateAPI = {
     return parseClimaResponse(response, 'No se pudieron cargar los resultados');
   },
 
+  simulateSurveyResponses: async (surveyId) => {
+    const response = await fetch(`${API_URL}/api/clima-laboral/surveys/${surveyId}/simulate`, {
+      method: 'POST',
+      headers: getAuthHeaders()
+    });
+    return parseClimaResponse(response, 'No se pudieron generar respuestas simuladas');
+  },
+
   getTemplates: async () => {
     const response = await fetch(`${API_URL}/api/clima-laboral/templates`, {
       headers: getAuthHeaders()

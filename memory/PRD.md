@@ -16,6 +16,13 @@
 - Causa secundaria: base de datos sin seed de usuarios.
 - Fix aplicado: creación de `frontend/.env` con `REACT_APP_BACKEND_URL`, ejecución de `backend/seed.py`, validación por API y login UI exitoso.
 
+## Feature (2026-05-15) — Simulación de encuestas de Clima Laboral
+- Requerimiento: generar respuestas realistas para una encuesta creada desde plantilla (20-30 personas, 4 departamentos, una sola encuesta).
+- Implementado backend: endpoint `POST /api/clima-laboral/surveys/{survey_id}/simulate`.
+- Lógica: genera 20-30 respuestas con variación por departamento (Tecnología, Ventas, Operaciones, RRHH), limpia simulaciones previas de la encuesta y recalcula métricas usando el flujo normal.
+- Implementado frontend: botón **"Simular 20-30"** por encuesta en Clima Laboral (admin/manager), luego abre resultados automáticamente.
+- Validación: creación de encuesta desde plantilla + simulación + resultados con 4 departamentos verificados.
+
 ## Stack
 React (CRA + Tailwind) + FastAPI + MongoDB. Frontend mock-state para Job Profiles. PDF con `html2pdf.js`.
 
@@ -44,6 +51,7 @@ Ver `/app/memory/test_credentials.md`. Demo admin: `maria@empresa.com / maria123
 
 ## Backlog
 - [P0] Revisar causa intermitente de reinicio de frontend (`craco: not found`) para evitar caídas en arranque automático.
+- [P1] Permitir parametrizar simulación (rango de respuestas, departamentos, sesgo de satisfacción) desde UI.
 - [P1] Editor de texto enriquecido (TipTap) en "Responsabilidades y Funciones".
 - [P2] Backend CRUD real para Job Profiles en MongoDB (V1 y V2 todavía state local).
 - [P2] Persistir valores de empresa en backend (hoy en localStorage).
